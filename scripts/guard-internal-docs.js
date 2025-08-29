@@ -7,6 +7,7 @@ const { execSync } = require('child_process');
 
 const patterns = [
   /^docs\//,
+  /^glyphs\//,
   /\/GLYPHS\.md$/,
   /\/GOVERNANCE\.md$/,
   /\/CONTRACTS\.md$/

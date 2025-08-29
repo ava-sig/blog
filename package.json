@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "test:docs": "node scripts/validate-glyphs.js",
-    "guard:internal": "node scripts/guard-internal-docs.js"
+    "guard:internal": "node scripts/guard-internal-docs.js",
+    "test:all": "(cd apps/api && npm test) && npm run test:docs && npm run guard:internal"
   }
 }

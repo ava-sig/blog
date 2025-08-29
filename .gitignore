@@ -25,6 +25,7 @@ coverage/
 # Glyphic Hidden Layer (per internal/GOV-SEC-001.md)
 docs/**
 internal/**
+glyphs/**
 **/GLYPHS.md
 **/GOVERNANCE.md
 **/CONTRACTS.md
