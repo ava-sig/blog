@@ -1,0 +1,30 @@
+# Node
+node_modules/
+**/node_modules/
+.npm/
+
+# Builds
+.dist/
+dist/
+.next/
+.nuxt/
+.out/
+coverage/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# OS / Editor
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Glyphic Hidden Layer (per internal/GOV-SEC-001.md)
+docs/**
+internal/**
+**/GLYPHS.md
+**/GOVERNANCE.md
+**/CONTRACTS.md

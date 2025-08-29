@@ -1,0 +1,13 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node src/server.js",
+    "build": "node -e \"process.exit(0)\"",
+    "test": "echo tests"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
