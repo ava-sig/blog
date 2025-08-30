@@ -1,0 +1,23 @@
+[
+  {
+    "id": "07d8d9a9-5278-4123-9f7c-4af827267ea9",
+    "title": "Lorem Ipsum",
+    "content": "\nWhat is Lorem Ipsum?\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+    "createdAt": "2025-08-30T16:05:48.328Z",
+    "updatedAt": "2025-08-30T16:18:54.895Z"
+  },
+  {
+    "id": "32aef0e6-964a-4f38-9a68-31fc08f70ee7",
+    "title": "Updating the visual look of the blog ",
+    "content": "Since I've been engaged in a lot of projects: [@youandgreg](https://x.com/youandgreg) and [@hananaapp](https://x.com/hananaapp), I decided to develop my own blog posting platform because in 2025, no one EVER wants to deal with Wordpress or other CMS and its headaches.\nIt's all custom made and tailored baby !\n\n![image](http://localhost:3388/uploads/56aeadb3-dbc9-4de4-90e2-bd87a4aae5b4.png)\n",
+    "createdAt": "2025-08-30T15:40:09.061Z",
+    "updatedAt": "2025-08-30T16:03:40.217Z"
+  },
+  {
+    "id": "9828f1c9-9340-4876-800e-9272172cba31",
+    "title": "Algo, you're messing up ",
+    "content": "This is X's lowest point it seems by now\n\n![image](http://localhost:3388/uploads/23a18ef0-eaa9-40fe-af9b-5b0e3c277b97.png)\n",
+    "createdAt": "2025-08-30T12:55:39.638Z",
+    "updatedAt": "2025-08-30T15:33:47.744Z"
+  }
+]

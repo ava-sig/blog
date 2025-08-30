@@ -13,33 +13,65 @@ export const useAuth = defineStore('auth', {
   actions: {
     setToken(t: string) {
       this.token = t || ''
-      if (process.client) {
-        try { localStorage.setItem('auth.token', this.token) } catch {}
-      }
+      // editing is derived from token validity/authorization
+      this.editing = this.isAuthorized()
     },
     clearToken() {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token')
+          sessionStorage.removeItem('auth.session')
+        }
+      } catch {}
       this.setToken('')
     },
+    // Editing is controlled by token. Toggle becomes a no-op unless authorized.
     toggleEditing() {
-      this.editing = !this.editing
-      if (process.client) {
-        try { localStorage.setItem('auth.editing', String(this.editing)) } catch {}
-      }
+      // Ensure editing reflects authorization; ignore manual flips.
+      this.editing = this.isAuthorized()
     },
-    setEditing(v: boolean) {
-      this.editing = !!v
-      if (process.client) {
-        try { localStorage.setItem('auth.editing', String(this.editing)) } catch {}
-      }
+    setEditing(_v: boolean) {
+      // Ignore external requests; enforce policy
+      this.editing = this.isAuthorized()
     },
     loadFromStorage() {
-      if (!process.client) return
+      if (typeof window === 'undefined') return
       try {
-        const t = localStorage.getItem('auth.token')
-        const e = localStorage.getItem('auth.editing')
-        if (t) this.token = t
-        if (e !== null) this.editing = e === 'true'
+        // Source of truth token is under 'token' per governance
+        const t = localStorage.getItem('token') || ''
+        this.token = t
+        this.editing = this.isAuthorized()
       } catch {}
+    },
+    // Decode and validate the JWT payload (no signature verification client-side)
+    decodePayload(): any | null {
+      if (!this.token) return null
+      const parts = this.token.split('.')
+      if (parts.length < 2) return null
+      try {
+        let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+        // pad base64 to length multiple of 4
+        const pad = base64.length % 4
+        if (pad) base64 += '='.repeat(4 - pad)
+        const json = typeof atob !== 'undefined' ? atob(base64) : Buffer.from(base64, 'base64').toString('utf8')
+        return JSON.parse(json)
+      } catch { return null }
+    },
+    isAuthorized(): boolean {
+      const p = this.decodePayload()
+      if (!p) return false
+      // exp check (seconds since epoch)
+      if (typeof p.exp === 'number') {
+        const nowSec = Math.floor(Date.now() / 1000)
+        if (p.exp <= nowSec) return false
+      }
+      // Expected payload policy: role=admin or admin=true or scope contains 'admin' or user==='admin'
+      if (p.role === 'admin') return true
+      if (p.admin === true) return true
+      if (p.user === 'admin') return true
+      if (typeof p.scope === 'string' && p.scope.split(/[ ,]/).includes('admin')) return true
+      if (Array.isArray(p.scopes) && p.scopes.includes('admin')) return true
+      return false
     },
   },
 })

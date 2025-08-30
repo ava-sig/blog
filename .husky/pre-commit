@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -e
+node scripts/validate-glyphs.js
+node scripts/check-contracts.js || { echo "hint: include tests & migration note"; exit 1; }

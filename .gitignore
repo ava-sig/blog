@@ -29,3 +29,9 @@ glyphs/**
 **/GLYPHS.md
 **/GOVERNANCE.md
 **/CONTRACTS.md
+
+# Allowlist specific governance artifacts
+!docs/GOVERNANCE.md
+!docs/MIGRATION.md
+!internal/registry.json
+!internal/adr/**

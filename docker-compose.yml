@@ -8,19 +8,28 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
   api:
-    build: ./apps/api
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./apps/api:/app
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
     depends_on: [db]
+    command: sh -c "npm install && npm run dev"
     ports:
       - "3388:3000"
   web:
-    build: ./apps/web
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./apps/web:/app
     environment:
+      NODE_ENV: development
       NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE}
     depends_on: [api]
+    command: sh -c "npm install && npm run dev"
     ports:
       - "5588:5000"

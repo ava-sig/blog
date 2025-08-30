@@ -2,8 +2,26 @@ name: Glyph & Docs Guard
 
 on:
   pull_request:
+  push:
+    branches: [main]
 
 jobs:
+  branch-policy:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Ensure head includes latest base commit
+        run: |
+          git fetch origin "${{ github.base_ref }}" --prune --depth=1
+          if git merge-base --is-ancestor "origin/${{ github.base_ref }}" HEAD; then
+            echo "Head includes latest base commit"
+          else
+            echo "PR branch is behind ${{ github.base_ref }}. Please rebase/merge base locally before opening PR." >&2
+            exit 1
+          fi
   tests:
     runs-on: ubuntu-latest
     steps:
