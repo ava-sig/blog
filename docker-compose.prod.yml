@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  api:
+    image: ${DOCKER_NS:-youruser}/glyph-api:${TAG:-latest}
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - api_data:/app/data
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+
+  web:
+    image: ${DOCKER_NS:-youruser}/glyph-web:${TAG:-latest}
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      HOST: 0.0.0.0
+      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE}
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:5000:5000"
+    restart: unless-stopped
+
+volumes:
+  api_data:

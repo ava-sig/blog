@@ -56,6 +56,8 @@ function formatTs(input: string) {
     return input
   }
 
+}
+
 function extractDescription(text: string): string {
   if (!text) return ''
   // Take first non-empty line/paragraph, strip markdown image and link syntax
@@ -68,7 +70,6 @@ function extractDescription(text: string): string {
     .replace(/\s+/g, ' ')
     .trim()
   return noMd.slice(0, 240)
-}
 }
 
 function escapeHtml(s: string) {
