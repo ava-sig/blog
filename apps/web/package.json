@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "nuxt dev -p 5000 -H 0.0.0.0",
+    "dev": "HOST=${HOST:-0.0.0.0} nuxt dev -p ${PORT:-5000} -H ${HOST}",
     "build": "nuxt build",
-    "start": "nuxt start -p 5000 -H 0.0.0.0",
+    "start": "HOST=${HOST:-0.0.0.0} PORT=${PORT:-5000} node .output/server/index.mjs",
     "typecheck": "npx nuxi typecheck",
     "lint": "eslint --ext .js,.ts,.vue .",
     "test": "vitest run",
@@ -15,6 +15,7 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
+    "@nuxt/vite-builder": "^3.12.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@pinia/nuxt": "^0.5.1",
     "nuxt": "^3.12.0",
