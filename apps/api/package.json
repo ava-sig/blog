@@ -5,10 +5,15 @@
   "scripts": {
     "dev": "node src/server.js",
     "build": "node -e \"process.exit(0)\"",
-    "test": "echo tests"
+    "test": "node --test",
+    "lint": "eslint --ext .js src test"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
   }
 }

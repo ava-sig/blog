@@ -1,12 +1,36 @@
 <template>
+  <!-- eslint-disable vue/no-v-html -->
   <main class="container-page py-8">
-    <NuxtLink to="/" class="text-sm text-zinc-400 hover:text-zinc-200">← Back</NuxtLink>
+    <NuxtLink
+      to="/"
+      class="text-sm text-zinc-400 hover:text-zinc-200"
+    >
+      ← Back
+    </NuxtLink>
 
     <section class="mt-4">
-      <div v-if="loading" class="text-base-sub">Loading...</div>
-      <div v-else-if="error" class="text-rose-400">{{ error }}</div>
-      <div v-else-if="!post" class="panel p-6 text-center">Post not found.</div>
-      <div v-else class="panel card card-art reveal in p-4 relative">
+      <div
+        v-if="loading"
+        class="text-base-sub"
+      >
+        Loading...
+      </div>
+      <div
+        v-else-if="error"
+        class="text-rose-400"
+      >
+        {{ error }}
+      </div>
+      <div
+        v-else-if="!post"
+        class="panel p-6 text-center"
+      >
+        Post not found.
+      </div>
+      <div
+        v-else
+        class="panel card card-art reveal in p-4 relative"
+      >
         <a
           class="card-xshare focus-ring"
           :href="xShareUrl(post)"
@@ -15,21 +39,35 @@
           aria-label="Share on X"
           title="Share on X"
         >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.49 11.24H16.27l-5.38-7.04-6.15 7.04H1.43l7.73-8.84L1 2.25h7.03l4.86 6.5 5.354-6.5zm-1.16 18.24h1.832L7.01 4.13H5.06l12.025 16.36z"/>
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.49 11.24H16.27l-5.38-7.04-6.15 7.04H1.43l7.73-8.84L1 2.25h7.03l4.86 6.5 5.354-6.5zm-1.16 18.24h1.832L7.01 4.13H5.06l12.025 16.36z" />
           </svg>
         </a>
 
-        <button v-if="auth.editing && !isEditing" class="btn-edit focus-ring" @click="startEdit" title="Edit" aria-label="Edit">Edit</button>
+        <button
+          v-if="auth.editing && !isEditing"
+          class="btn-edit focus-ring"
+          title="Edit"
+          aria-label="Edit"
+          @click="startEdit"
+        >
+          Edit
+        </button>
         <template v-if="auth.editing && isEditing">
           <input
             v-model="editTitle"
             class="input !text-base !font-medium !mb-2"
             placeholder="Title"
+            autofocus
             @keydown.enter.prevent="saveEdit"
             @keydown="onComposerKeydown"
-            autofocus
-          />
+          >
           <textarea
             v-model="editContent"
             class="input !min-h-[220px]"
@@ -38,19 +76,40 @@
             @keydown="onComposerKeydown"
             @paste.stop="onPaste($event as any)"
           />
-          <div v-if="uploading" class="inline-flex items-center gap-2 text-xs text-base-sub mt-2">
+          <div
+            v-if="uploading"
+            class="inline-flex items-center gap-2 text-xs text-base-sub mt-2"
+          >
             <span class="spinner" /> Uploading image…
           </div>
           <div class="mt-3 flex gap-2">
-            <button class="btn-primary focus-ring" @click="saveEdit">Save</button>
-            <button class="btn-secondary focus-ring" @click="cancelEdit">Cancel</button>
+            <button
+              class="btn-primary focus-ring"
+              @click="saveEdit"
+            >
+              Save
+            </button>
+            <button
+              class="btn-secondary focus-ring"
+              @click="cancelEdit"
+            >
+              Cancel
+            </button>
           </div>
         </template>
         <template v-else>
-          <h4 class="m-0 mb-2 text-[21px] font-semibold leading-tight tracking-tight">{{ post.title }}</h4>
-          <div class="prose-content prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-img:rounded-xl prose-img:shadow-subtle" v-html="renderContent(post.content)"></div>
+          <h4 class="m-0 mb-2 text-[21px] font-semibold leading-tight tracking-tight">
+            {{ post.title }}
+          </h4>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div
+            class="prose-content prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-img:rounded-xl prose-img:shadow-subtle"
+            v-html="renderContent(post.content)"
+          />
         </template>
-        <div class="text-[12px] text-base-sub mt-3 pt-2 border-t border-base-border/60">Updated: {{ formatTs(post.updatedAt || post.createdAt) }}</div>
+        <div class="text-[12px] text-base-sub mt-3 pt-2 border-t border-base-border/60">
+          Updated: {{ formatTs(post.updatedAt || post.createdAt) }}
+        </div>
       </div>
     </section>
   </main>
@@ -62,12 +121,20 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { useApi } from '~/composables/useApi'
 import { useAuth } from '~/stores/auth'
+import { useContent } from '~/composables/useContent'
+import { useSlug } from '~/composables/useSlug'
+import { usePasteMedia } from '~/composables/usePasteMedia'
+import { useComposerKeys } from '~/composables/useComposerKeys'
 
 const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const runtime = useRuntimeConfig()
-const apiBase = ((runtime.public as any)?.apiBase || '').replace(/\/$/, '')
+// runtime used for SEO meta fallback, no apiBase needed here
+
+// Shared composables
+const { renderContent, firstImageUrl } = useContent()
+const { titleToSlug, canonicalSlug, postUrl, xShareUrl } = useSlug()
 
 const loading = ref(false)
 const error = ref('')
@@ -89,6 +156,7 @@ function formatTs(input: string) {
   } catch {
     return input
   }
+}
 
 function startEdit() {
   if (!auth.editing || !post.value) return
@@ -106,14 +174,7 @@ function cancelEdit() {
   }
 }
 
-function titleToSlug(input: string): string {
-  return String(input || '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
+// removed local titleToSlug in favor of useSlug()
 
 async function saveEdit() {
   if (!post.value) return
@@ -134,79 +195,19 @@ async function saveEdit() {
   }
 }
 
-function onComposerKeydown(e: KeyboardEvent) {
-  const target = e.target as HTMLElement | null
-  const isTextarea = target instanceof HTMLTextAreaElement
-  if (e.key === 'Escape') {
-    e.preventDefault()
-    if (isEditing.value) saveEdit()
-  }
-  // Ctrl/Cmd+K to insert link markdown
-  if (isTextarea && (e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
-    e.preventDefault()
-    const el = target as HTMLTextAreaElement
-    const start = el.selectionStart ?? 0
-    const end = el.selectionEnd ?? start
-    const model = editContent
-    const selected = model.value.slice(start, end) || 'link text'
-    const url = window.prompt('Enter URL to link to:', 'https://') || ''
-    if (!url) return
-    const md = `[${selected}](${url})`
-    model.value = model.value.slice(0, start) + md + model.value.slice(end)
-    requestAnimationFrame(() => {
-      const caret = start + md.length
-      el.selectionStart = el.selectionEnd = caret
-      el.focus()
-    })
-  }
-}
+const { onComposerKeydown } = useComposerKeys({
+  isEditing,
+  editContent,
+  saveEdit,
+})
 
-async function onPaste(e: ClipboardEvent) {
-  if (!auth.editing || !isEditing.value) return
-  if (uploading.value) return
-  const items = e.clipboardData?.items
-  const files = e.clipboardData?.files
-  let file: File | null = null
-  if (items && items.length > 0) {
-    const it = Array.from(items).find(i => (i.kind === 'file' || i.type.startsWith('image/')))
-    file = it?.getAsFile() || null
-  }
-  if (!file && files && files.length > 0) {
-    const f = Array.from(files).find(f => f.type.startsWith('image/'))
-    file = f || null
-  }
-  if (!file) return
-  const mimeOk = file.type && file.type.startsWith('image/')
-  const header = await file.slice(0, 12).arrayBuffer().then(buf => new Uint8Array(buf)).catch(() => new Uint8Array())
-  const sig = Array.from(header.slice(0, 12))
-  const isPng = sig.length >= 8 && sig[0] === 0x89 && sig[1] === 0x50 && sig[2] === 0x4E && sig[3] === 0x47
-  const isJpg = sig.length >= 3 && sig[0] === 0xFF && sig[1] === 0xD8 && sig[2] === 0xFF
-  const isGif = sig.length >= 3 && sig[0] === 0x47 && sig[1] === 0x49 && sig[2] === 0x46
-  const isWebp = sig.length >= 12 && sig[0] === 0x52 && sig[1] === 0x49 && sig[2] === 0x46 && sig[3] === 0x46 && sig[8] === 0x57 && sig[9] === 0x45 && sig[10] === 0x42 && sig[11] === 0x50
-  const isBmp = sig.length >= 2 && sig[0] === 0x42 && sig[1] === 0x4D
-  const headerOk = isPng || isJpg || isGif || isWebp || isBmp
-  if (!(mimeOk || headerOk)) return
-  e.preventDefault()
-  try {
-    uploading.value = true
-    const { url } = await api.upload('/api/upload', 'image', file)
-    const finalUrl = url.startsWith('/uploads/') ? `${apiBase}${url}` : url
-    const el = document.activeElement as HTMLTextAreaElement | null
-    const md = `\n![image](${finalUrl})\n`
-    if (el) {
-      const start = el.selectionStart ?? editContent.value.length
-      const end = el.selectionEnd ?? editContent.value.length
-      editContent.value = editContent.value.slice(0, start) + md + editContent.value.slice(end)
-      requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + md.length })
-    } else {
-      editContent.value += md
-    }
-  } finally {
-    uploading.value = false
-  }
-}
+const { onPaste } = usePasteMedia({
+  authEditing: () => auth.editing,
+  isEditing,
+  editContent,
+  uploading,
+})
 
-}
 
 function extractDescription(text: string): string {
   if (!text) return ''
@@ -222,66 +223,7 @@ function extractDescription(text: string): string {
   return noMd.slice(0, 240)
 }
 
-function escapeHtml(s: string) {
-  return s
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-}
-
-function renderContent(text: string) {
-  if (!text) return ''
-  const escaped = escapeHtml(text)
-  const withImages = escaped.replace(/!\[[^\]]*\]\(\s*([^\)\s]+)(?:\s+\"[^\"]*\")?\s*\)/g, (_m, url) => {
-    let u = String(url).trim()
-    u = u.replace(/^<|>$/g, '')
-    u = u.replace(/^"+|"+$/g, '')
-    u = u.replace(/[)]+$/g, '')
-    if (u.startsWith('/uploads/')) u = `${apiBase}${u}`
-    return `<img src="${u}" alt="" />\n`
-  })
-  const withLinks = withImages.replace(/\[([^\]]+)\]\(\s*([^\)\s]+)(?:\s+\"[^\"]*\")?\s*\)/g, (_m, text, url) => {
-    let u = String(url).trim()
-    u = u.replace(/^<|>$/g, '')
-    u = u.replace(/^"+|"+$/g, '')
-    u = u.replace(/[)]+$/g, '')
-    const t = String(text)
-    const safeText = t
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-    return `<a href="${u}" target="_blank" rel="noopener noreferrer">${safeText}</a>`
-  })
-  return withLinks
-}
-
-function titleToSlug(input: string): string {
-  return String(input || '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '') // strip diacritics
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-function canonicalSlug(p: any): string {
-  const t = titleToSlug(p?.title || '')
-  return t || p?.slug || p?.id || ''
-}
-
-function postUrl(p: any): string {
-  const slug = canonicalSlug(p)
-  if (!slug) return ''
-  if (typeof window !== 'undefined') return `${location.origin}/p/${slug}`
-  // SSR fallback: relative
-  return `/p/${slug}`
-}
-
-function xShareUrl(p: any): string {
-  const text = encodeURIComponent(p?.title || '')
-  const url = encodeURIComponent(postUrl(p))
-  return `https://x.com/intent/tweet?text=${text}&url=${url}`
-}
+// removed local renderContent and canonical helpers in favor of composables
 
 async function fetchOne() {
   loading.value = true
@@ -328,10 +270,10 @@ async function fetchOne() {
       }
       useHead({
         title: post.value.title || 'Post',
-        link: [
+        link: ([
           { rel: 'canonical', href: pageUrl },
           ...(img ? [{ rel: 'preload', as: 'image', href: img }] : (fallback ? [{ rel: 'preload', as: 'image', href: fallback }] : [])),
-        ],
+        ]) as any,
         meta,
       })
       // Prepare edit buffers
@@ -345,20 +287,7 @@ async function fetchOne() {
   }
 }
 
-function firstImageUrl(text: string): string | '' {
-  if (!text) return ''
-  // Match markdown image ![alt](url "title") and capture URL
-  const m = text.match(/!\[[^\]]*\]\(\s*([^\)\s]+)(?:\s+\"[^\"]*\")?\s*\)/)
-  if (!m) return ''
-  let u = String(m[1] || '').trim()
-  u = u.replace(/^<|>$/g, '')
-  u = u.replace(/^"+|"+$/g, '')
-  u = u.replace(/[)]+$/g, '')
-  if (!u) return ''
-  // If it's an /uploads path, prefix with API base for absolute URL
-  if (u.startsWith('/uploads/')) return `${apiBase}${u}`
-  return u
-}
+// firstImageUrl provided by useContent()
 
 onMounted(() => {
   fetchOne()

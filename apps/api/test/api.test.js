@@ -10,6 +10,29 @@ const dataDir = path.join(process.cwd(), 'apps', 'api', 'data')
 const postsFile = path.join(dataDir, 'posts.json')
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
 
+test('CRUD lifecycle reflects in list', async () => {
+  // Create
+  const created = await json('POST', '/api/posts', { title: 'ListCheck', content: 'Body' }, 'test-token')
+  assert.equal(created.status, 201)
+  const id = created.data.id
+
+  // List should include
+  let res = await fetch(baseURL + '/api/posts')
+  assert.equal(res.status, 200)
+  let arr = await res.json()
+  assert.ok(arr.some(p => p.id === id))
+
+  // Delete
+  const del = await fetch(baseURL + '/api/posts/' + id, { method: 'DELETE', headers: { Authorization: 'Bearer test-token' } })
+  assert.equal(del.status, 200)
+
+  // List should exclude
+  res = await fetch(baseURL + '/api/posts')
+  assert.equal(res.status, 200)
+  arr = await res.json()
+  assert.ok(!arr.some(p => p.id === id))
+})
+
 // JWT authorization scenarios
 
 test('JWT with admin claim passes', async () => {

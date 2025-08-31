@@ -1,17 +1,48 @@
 <template>
   <main style="padding:16px;max-width:800px;margin:0 auto">
     <h2>Edit Post</h2>
-    <div v-if="!auth.editing" style="color:#b00">Editing is disabled</div>
+    <div
+      v-if="!auth.editing"
+      style="color:#b00"
+    >
+      Editing is disabled
+    </div>
 
-    <div v-if="loading">Loading...</div>
-    <div v-else-if="error" style="color:#b00">{{ error }}</div>
+    <div v-if="loading">
+      Loading...
+    </div>
+    <div
+      v-else-if="error"
+      style="color:#b00"
+    >
+      {{ error }}
+    </div>
 
-    <form v-else @submit.prevent="save()" style="display:grid;gap:8px">
-      <input v-model="title" placeholder="Title" required />
-      <textarea v-model="content" placeholder="Content" rows="10" />
+    <form
+      v-else
+      style="display:grid;gap:8px"
+      @submit.prevent="save()"
+    >
+      <input
+        v-model="title"
+        placeholder="Title"
+        required
+      >
+      <textarea
+        v-model="content"
+        placeholder="Content"
+        rows="10"
+      />
       <div style="display:flex;gap:8px">
-        <button type="submit">Save</button>
-        <button type="button" @click="goBack">Cancel</button>
+        <button type="submit">
+          Save
+        </button>
+        <button
+          type="button"
+          @click="goBack"
+        >
+          Cancel
+        </button>
       </div>
     </form>
   </main>
