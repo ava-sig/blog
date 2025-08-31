@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     // individual suites can override with @vitest-environment
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    include: ['**/*.test.ts'],
   },
   resolve: {
     alias: {
