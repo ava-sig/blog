@@ -61,18 +61,28 @@ jobs:
           cache: 'npm'
           cache-dependency-path: apps/web/package-lock.json
       - name: Install web deps
-        run: npm ci --prefix apps/web
+        run: npm ci
+        working-directory: apps/web
       - name: Prepare Nuxt types (.nuxt)
         run: npx nuxi prepare
         working-directory: apps/web
+      - name: Diagnostics (commit and web scripts)
+        run: |
+          echo "Commit: $(git rev-parse --short HEAD)"
+          node -e "console.log(require('./apps/web/package.json').scripts)"
+          npx vitest --version
       - name: Test web (unit)
-        run: npm run --silent --prefix apps/web test:unit
+        run: npm run --silent test:unit
+        working-directory: apps/web
       - name: Typecheck web
-        run: npm run --prefix apps/web typecheck
+        run: npm run typecheck
+        working-directory: apps/web
       - name: Lint web
-        run: npm run --prefix apps/web lint
+        run: npm run lint
+        working-directory: apps/web
       - name: Build web app
-        run: npm run --prefix apps/web build
+        run: npm run build
+        working-directory: apps/web
 
   e2e:
     runs-on: ubuntu-latest
