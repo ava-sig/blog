@@ -130,7 +130,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, nextTick } from 'vue'
-import { useRuntimeConfig } from 'nuxt/app'
+import { useRuntimeConfig, useHead } from 'nuxt/app'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
@@ -141,6 +141,9 @@ const auth = useAuth()
 const api = useApi()
 const runtime = useRuntimeConfig()
 const apiBase = ((runtime.public as any)?.apiBase || '').replace(/\/$/, '')
+
+// Ensure homepage HTML <title> is set/reset when navigating here
+useHead({ title: 'Posts' })
 
 const posts = ref<any[]>([])
 const loading = ref(false)

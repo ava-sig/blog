@@ -152,6 +152,7 @@ async function fetchOne() {
       if (want && want !== slug) router.replace({ path: `/p/${want}` })
       // Set SEO and social sharing tags (Twitter Card / Open Graph)
       const img = firstImageUrl(post.value?.content || '')
+      const fallback = (runtime.public as any)?.socialFallback || ''
       const pageUrl = postUrl(post.value)
       const desc = extractDescription(post.value?.content || '')
       const meta: any[] = [
@@ -167,13 +168,19 @@ async function fetchOne() {
         meta.push({ property: 'og:image', content: img })
         meta.push({ name: 'twitter:image', content: img })
       } else {
-        meta.push({ name: 'twitter:card', content: 'summary' })
+        if (fallback) {
+          meta.push({ name: 'twitter:card', content: 'summary_large_image' })
+          meta.push({ property: 'og:image', content: fallback })
+          meta.push({ name: 'twitter:image', content: fallback })
+        } else {
+          meta.push({ name: 'twitter:card', content: 'summary' })
+        }
       }
       useHead({
         title: post.value.title || 'Post',
         link: [
           { rel: 'canonical', href: pageUrl },
-          ...(img ? [{ rel: 'preload', as: 'image', href: img }] : []),
+          ...(img ? [{ rel: 'preload', as: 'image', href: img }] : (fallback ? [{ rel: 'preload', as: 'image', href: fallback }] : [])),
         ],
         meta,
       })
