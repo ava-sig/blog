@@ -418,8 +418,8 @@ async function onPaste(e: ClipboardEvent) {
     // Fallback: some tools put image only in async clipboard API
     try {
       if (typeof navigator !== 'undefined' && 'clipboard' in navigator && 'read' in navigator.clipboard) {
-        const items = await (navigator.clipboard as any).read()
-        for (const item of items) {
+        const asyncItems = await (navigator.clipboard as any).read()
+        for (const item of asyncItems) {
           const type = (item.types || []).find((t: string) => t.startsWith('image/'))
           if (type) {
             const blob = await item.getType(type)
@@ -428,9 +428,48 @@ async function onPaste(e: ClipboardEvent) {
           }
         }
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
   }
-  if (!file) return // allow normal paste
+  // If still no file, check for Giphy URL text and embed it
+  if (!file) {
+    const text = e.clipboardData?.getData('text/plain') || ''
+    if (text) {
+      const giphyMedia = /(https?:\/\/)?(media|i)\.giphy\.com\/media\/([A-Za-z0-9]+)\//i
+      const giphyPage = /(https?:\/\/)?(www\.)?giphy\.com\/gifs\/[^\s]+/i
+      const giphyIdInPage = /giphy\.com\/gifs\/[^\s-]+-([A-Za-z0-9]+)$/
+      let id = ''
+      const m1 = giphyMedia.exec(text)
+      if (m1?.[3]) id = m1[3]
+      if (!id && giphyPage.test(text)) {
+        const m2 = giphyIdInPage.exec(text)
+        if (m2?.[1]) id = m2[1]
+      }
+      if (id) {
+        e.preventDefault()
+        const gifUrl = `https://media.giphy.com/media/${id}/giphy.gif`
+        const el = document.activeElement as HTMLTextAreaElement | null
+        const md = `\n![gif](${gifUrl})\n`
+        if (el && el.classList.contains('content-input')) {
+          const start = el.selectionStart ?? editContent.value.length
+          const end = el.selectionEnd ?? editContent.value.length
+          editContent.value = editContent.value.slice(0, start) + md + editContent.value.slice(end)
+          requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + md.length })
+        } else if (el && el.classList.contains('new-content-input')) {
+          const start = el.selectionStart ?? content.value.length
+          const end = el.selectionEnd ?? content.value.length
+          content.value = content.value.slice(0, start) + md + content.value.slice(end)
+          requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + md.length })
+        } else {
+          if (editingId.value) editContent.value += md
+          else content.value += md
+        }
+        return
+      }
+    }
+    return // allow normal paste if no giphy
+  }
   // Validate MIME type and magic header to ensure it's an image
   const mimeOk = file.type && file.type.startsWith('image/')
   const header = await file.slice(0, 12).arrayBuffer().then(buf => new Uint8Array(buf)).catch(() => new Uint8Array())
@@ -527,6 +566,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.prose-content {
+  white-space: pre-wrap; /* preserve newlines and blank lines */
+}
 .card {
   position: relative;
 }

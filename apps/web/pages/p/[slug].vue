@@ -213,6 +213,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.prose-content {
+  white-space: pre-wrap; /* preserve newlines and blank lines */
+}
 /* X share button (match index card) */
 .card-xshare {
   position: absolute;
