@@ -62,8 +62,11 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - name: Install web deps
         run: npm ci --prefix apps/web
+      - name: Prepare Nuxt types (.nuxt)
+        run: npx nuxi prepare
+        working-directory: apps/web
       - name: Test web (unit)
-        run: npm test --silent --prefix apps/web
+        run: npm run --silent --prefix apps/web test:unit
       - name: Typecheck web
         run: npm run --prefix apps/web typecheck
       - name: Lint web
