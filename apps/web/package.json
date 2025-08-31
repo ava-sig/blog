@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nuxt dev -p 5000 -H 0.0.0.0",
     "build": "nuxt build",
-    "start": "nuxt start -p 5000 -H 0.0.0.0",
+    "start": "node .output/server/index.mjs",
     "typecheck": "npx nuxi typecheck",
     "lint": "eslint --ext .js,.ts,.vue .",
     "test": "vitest run",
