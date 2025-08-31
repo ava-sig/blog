@@ -1,52 +1,94 @@
 <template>
+  <!-- eslint-disable vue/no-v-html -->
   <main class="container-page py-8">
-    <h2 class="text-xl font-semibold tracking-tight text-base-text mb-4">Posts</h2>
+    <h2 class="text-xl font-semibold tracking-tight text-base-text mb-4">
+      Posts
+    </h2>
 
-    <section v-if="auth.editing" class="panel-muted p-4 mt-4">
-      <h3 class="text-base font-medium mb-3">New Post</h3>
-      <form @submit.prevent="create()" class="grid gap-3">
+    <section
+      v-if="auth.editing"
+      class="panel-muted p-4 mt-4"
+    >
+      <h3 class="text-base font-medium mb-3">
+        New Post
+      </h3>
+      <form
+        class="grid gap-3"
+        @submit.prevent="create()"
+      >
         <label class="block">
           <span class="block text-xs text-base-sub mb-1">Title</span>
           <input
-            class="input new-title-input"
             v-model="title"
+            class="input new-title-input"
             placeholder="Title"
             required
             @keydown="onComposerKeydown"
-          />
+          >
         </label>
         <label class="block">
           <span class="block text-xs text-base-sub mb-1">Content</span>
           <textarea
-            class="input new-content-input"
             v-model="content"
+            class="input new-content-input"
             placeholder="Content"
             rows="6"
             @keydown="onComposerKeydown"
             @paste.stop="onPaste($event as any)"
           />
         </label>
-        <div v-if="uploading" class="uploading inline-flex items-center gap-2 text-xs text-base-sub -mt-1">
+        <div
+          v-if="uploading"
+          class="uploading inline-flex items-center gap-2 text-xs text-base-sub -mt-1"
+        >
           <span class="spinner" /> Uploading image…
         </div>
         <div class="flex justify-end">
-          <button class="btn-primary focus-ring" type="submit">Create</button>
+          <button
+            class="btn-primary focus-ring"
+            type="submit"
+          >
+            Create
+          </button>
         </div>
       </form>
     </section>
 
     <section class="mt-6">
-      <div v-if="route.query.missing === '1'" class="border border-rose-900/60 bg-rose-900/20 text-rose-300 rounded-md px-3 py-2 mb-3">
+      <div
+        v-if="route.query.missing === '1'"
+        class="border border-rose-900/60 bg-rose-900/20 text-rose-300 rounded-md px-3 py-2 mb-3"
+      >
         The post you tried to edit was not found.
       </div>
-      <div v-if="loading" class="text-base-sub">Loading...</div>
-      <div v-else-if="error" class="text-rose-400">{{ error }}</div>
+      <div
+        v-if="loading"
+        class="text-base-sub"
+      >
+        Loading...
+      </div>
+      <div
+        v-else-if="error"
+        class="text-rose-400"
+      >
+        {{ error }}
+      </div>
       <template v-else>
-        <div v-if="posts.length === 0" class="panel p-6 text-center">
-          <div class="text-base-sub mb-2">No posts yet</div>
-          <div class="text-sm text-zinc-400">Use edit mode to create your first post. Paste an image to attach quickly.</div>
+        <div
+          v-if="posts.length === 0"
+          class="panel p-6 text-center"
+        >
+          <div class="text-base-sub mb-2">
+            No posts yet
+          </div>
+          <div class="text-sm text-zinc-400">
+            Use edit mode to create your first post. Paste an image to attach quickly.
+          </div>
         </div>
-        <ul v-else class="list-none p-0 grid gap-3">
+        <ul
+          v-else
+          class="list-none p-0 grid gap-3"
+        >
           <li
             v-for="p in posts"
             :key="p.id"
@@ -65,8 +107,19 @@
               tabindex="-1"
               @click.stop
             />
-            <div class="timeline" aria-hidden="true"></div>
-            <button v-if="auth.editing" class="card-close focus-ring" @click.stop="remove(p.id)" aria-label="Delete post" title="Delete">×</button>
+            <div
+              class="timeline"
+              aria-hidden="true"
+            />
+            <button
+              v-if="auth.editing"
+              class="card-close focus-ring"
+              aria-label="Delete post"
+              title="Delete"
+              @click.stop="remove(p.id)"
+            >
+              ×
+            </button>
             <a
               class="card-xshare focus-ring"
               :href="xShareUrl(p)"
@@ -76,8 +129,14 @@
               title="Share on X"
               @click.stop
             >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.49 11.24H16.27l-5.38-7.04-6.15 7.04H1.43l7.73-8.84L1 2.25h7.03l4.86 6.5 5.354-6.5zm-1.16 18.24h1.832L7.01 4.13H5.06l12.025 16.36z"/>
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.49 11.24H16.27l-5.38-7.04-6.15 7.04H1.43l7.73-8.84L1 2.25h7.03l4.86 6.5 5.354-6.5zm-1.16 18.24h1.832L7.01 4.13H5.06l12.025 16.36z" />
               </svg>
             </a>
 
@@ -86,12 +145,12 @@
                 v-model="editTitle"
                 class="title-input input !text-base !font-medium !mb-2"
                 placeholder="Title"
+                autofocus
                 @blur="onEditBlur"
                 @keydown.enter.prevent="saveEdit"
                 @keydown="onComposerKeydown"
                 @click.stop
-                autofocus
-              />
+              >
               <textarea
                 v-model="editContent"
                 class="content-input input !min-h-[180px]"
@@ -101,7 +160,10 @@
                 @keydown="onComposerKeydown"
                 @click.stop
               />
-              <div v-if="uploading" class="uploading inline-flex items-center gap-2 text-xs text-base-sub mt-2">
+              <div
+                v-if="uploading"
+                class="uploading inline-flex items-center gap-2 text-xs text-base-sub mt-2"
+              >
                 <span class="spinner" /> Uploading image…
               </div>
             </template>
@@ -115,35 +177,72 @@
                   {{ p.title }}
                 </NuxtLink>
               </h4>
-              <div class="prose-content prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-img:rounded-xl prose-img:shadow-subtle" v-html="renderContent(p.content)"></div>
+              <!-- eslint-disable vue/no-v-html -->
+              <div
+                class="prose-content prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-img:rounded-xl prose-img:shadow-subtle"
+                v-html="renderContent(p.content)"
+              />
+              <!-- eslint-enable vue/no-v-html -->
             </template>
 
-          <div class="text-[12px] text-base-sub mt-3 pt-2 border-t border-base-border/60">Updated: {{ formatTs(p.updatedAt || p.createdAt) }}</div>
-        </li>
-      </ul>
+            <div class="text-[12px] text-base-sub mt-3 pt-2 border-t border-base-border/60">
+              Updated: {{ formatTs(p.updatedAt || p.createdAt) }}
+            </div>
+          </li>
+        </ul>
       </template>
     </section>
   </main>
-  <UiToast :visible="toastVisible" :type="toastType" :message="toastMsg" />
-  
+  <UiToast
+    :visible="toastVisible"
+    :type="toastType"
+    :message="toastMsg"
+  />
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, nextTick } from 'vue'
-import { useRuntimeConfig, useHead } from 'nuxt/app'
+import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '~/stores/auth'
+import { useContent } from '~/composables/useContent'
+import { useSlug } from '~/composables/useSlug'
+import { usePasteMedia } from '~/composables/usePasteMedia'
+import { useComposerKeys } from '~/composables/useComposerKeys'
 import { useApi } from '~/composables/useApi'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuth()
 const api = useApi()
-const runtime = useRuntimeConfig()
-const apiBase = ((runtime.public as any)?.apiBase || '').replace(/\/$/, '')
+// no runtime needed here
 
-// Ensure homepage HTML <title> is set/reset when navigating here
-useHead({ title: 'Posts' })
+// Shared composables
+const { renderContent, firstImageUrl: _firstImageUrl } = useContent()
+const { titleToSlug, canonicalSlug, postUrl: _postUrl, xShareUrl } = useSlug()
+
+// SEO: homepage head tags and optional preload of fallback social image
+const runtime = useRuntimeConfig()
+const socialFallback = (runtime.public as any)?.socialFallback || ''
+useHead({
+  title: 'Posts',
+  link: ([
+    { rel: 'canonical', href: '/' },
+    ...(socialFallback ? [{ rel: 'preload', as: 'image', href: socialFallback }] : []),
+  ]) as any,
+  meta: ([
+    { property: 'og:title', content: 'Posts' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: '/' },
+    ...(socialFallback ? [
+      { property: 'og:image', content: socialFallback },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:image', content: socialFallback },
+    ] : [
+      { name: 'twitter:card', content: 'summary' },
+    ]),
+  ]) as any,
+})
 
 const posts = ref<any[]>([])
 const loading = ref(false)
@@ -158,8 +257,7 @@ const uploading = ref(false)
 const toastVisible = ref(false)
 const toastMsg = ref('')
 const toastType = ref<'success' | 'error'>('success')
-let lastInsertUrl = ''
-let lastInsertAt = 0
+// removed paste dedupe guards (handled by composable if needed)
 
 let observer: IntersectionObserver | null = null
 
@@ -212,21 +310,14 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
   ;(showToast as any)._t = window.setTimeout(() => (toastVisible.value = false), 1600)
 }
 
-function slugify(t: string) {
-  return (t || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-}
+// slug helpers provided by useSlug()
 
 async function create() {
   try {
     const payload = {
       title: title.value,
       content: content.value,
-      slug: slugify(title.value),
+      slug: titleToSlug(title.value),
       status: 'draft',
     }
     const created = await api.post('/posts', payload)
@@ -251,7 +342,7 @@ async function remove(id: string) {
   }
 }
 
-function gotoEdit(id: string) {
+function _gotoEdit(id: string) {
   router.push(`/posts/${id}`)
 }
 
@@ -263,7 +354,7 @@ function startEdit(p: any) {
   editContent.value = p.content
 }
 
-function onCardClick(p: any, e: MouseEvent) {
+function onCardClick(p: any, _e: MouseEvent) {
   if (!auth.editing) return
   // If already editing this card, ignore clicks inside the card
   if (editingId.value === p.id) return
@@ -277,7 +368,7 @@ async function saveEdit() {
     const payload = {
       title: editTitle.value,
       content: editContent.value,
-      slug: slugify(editTitle.value),
+      slug: titleToSlug(editTitle.value),
       status: 'draft',
     }
     const updated = await api.put(`/posts/${id}`, payload)
@@ -306,79 +397,7 @@ function onEditBlur() {
   }, 120)
 }
 
-function escapeHtml(s: string) {
-  return s
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-}
-
-function renderContent(text: string) {
-  if (!text) return ''
-  // Replace markdown image syntax ![alt](url) or ![alt](url "title") with img tags
-  const escaped = escapeHtml(text)
-  // Regex captures the URL only (no title), ignoring trailing title or spaces
-  const withImages = escaped.replace(/!\[[^\]]*\]\(\s*([^\)\s]+)(?:\s+\"[^\"]*\")?\s*\)/g, (_m, url) => {
-    let u = String(url).trim()
-    // Remove surrounding quotes or angle brackets if any, and stray closing parens
-    u = u.replace(/^<|>$/g, '')
-    u = u.replace(/^"+|"+$/g, '')
-    u = u.replace(/[)]+$/g, '')
-    if (u.startsWith('/uploads/')) u = `${apiBase}${u}`
-    return `<img src="${u}" alt="" />\n`
-  })
-  // Convert Markdown links [text](url) to anchors
-  const withLinks = withImages.replace(/\[([^\]]+)\]\(\s*([^\)\s]+)(?:\s+\"[^\"]*\")?\s*\)/g, (_m, text, url) => {
-    let u = String(url).trim()
-    u = u.replace(/^<|>$/g, '')
-    u = u.replace(/^"+|"+$/g, '')
-    u = u.replace(/[)]+$/g, '')
-    const t = String(text)
-    const safeText = t
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-    return `<a href="${u}" target="_blank" rel="noopener noreferrer">${safeText}</a>`
-  })
-  return withLinks
-}
-
-function firstImageUrlFromMarkdown(text: string): string | null {
-  if (!text) return null
-  const m = /!\[[^\]]*\]\(\s*([^)\s]+)(?:\s+\"[^\"]*\")?\s*\)/.exec(text)
-  if (!m) return null
-  let u = String(m[1]).trim()
-  u = u.replace(/^<|>$/g, '').replace(/^"+|"+$/g, '').replace(/[)]+$/g, '')
-  if (u.startsWith('/uploads/')) u = `${apiBase}${u}`
-  return u
-}
-
-function titleToSlug(input: string): string {
-  return String(input || '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '') // strip diacritics
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-function canonicalSlug(p: any): string {
-  const t = titleToSlug(p?.title || '')
-  return t || p?.slug || p?.id || ''
-}
-
-function postUrl(p: any): string {
-  const slug = canonicalSlug(p)
-  if (!slug) return ''
-  if (typeof window !== 'undefined') return `${location.origin}/p/${slug}`
-  return `/p/${slug}`
-}
-
-function xShareUrl(p: any): string {
-  const text = encodeURIComponent(p.title || '')
-  const url = encodeURIComponent(postUrl(p))
-  return `https://x.com/intent/tweet?text=${text}&url=${url}`
-}
+// Removed local helpers in favor of composables above
 
 function onCardParallax(e: MouseEvent) {
   const t = e.currentTarget as HTMLElement | null
@@ -400,165 +419,24 @@ function onCardParallaxLeave(e: MouseEvent) {
   t.style.setProperty('--py', '0px')
 }
 
-async function onPaste(e: ClipboardEvent) {
-  if (!auth.editing) return
-  if (uploading.value) return
-  const items = e.clipboardData?.items
-  const files = e.clipboardData?.files
-  let file: File | null = null
-  if (items && items.length > 0) {
-    const it = Array.from(items).find(i => (i.kind === 'file' || i.type.startsWith('image/')))
-    file = it?.getAsFile() || null
-  }
-  if (!file && files && files.length > 0) {
-    const f = Array.from(files).find(f => f.type.startsWith('image/'))
-    file = f || null
-  }
-  if (!file) {
-    // Fallback: some tools put image only in async clipboard API
-    try {
-      if (typeof navigator !== 'undefined' && 'clipboard' in navigator && 'read' in navigator.clipboard) {
-        const asyncItems = await (navigator.clipboard as any).read()
-        for (const item of asyncItems) {
-          const type = (item.types || []).find((t: string) => t.startsWith('image/'))
-          if (type) {
-            const blob = await item.getType(type)
-            file = new File([blob], 'clipboard-image', { type: blob.type || type })
-            break
-          }
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }
-  // If still no file, check for Giphy URL text and embed it
-  if (!file) {
-    const text = e.clipboardData?.getData('text/plain') || ''
-    if (text) {
-      const giphyMedia = /(https?:\/\/)?(media|i)\.giphy\.com\/media\/([A-Za-z0-9]+)\//i
-      const giphyPage = /(https?:\/\/)?(www\.)?giphy\.com\/gifs\/[^\s]+/i
-      const giphyIdInPage = /giphy\.com\/gifs\/[^\s-]+-([A-Za-z0-9]+)$/
-      let id = ''
-      const m1 = giphyMedia.exec(text)
-      if (m1?.[3]) id = m1[3]
-      if (!id && giphyPage.test(text)) {
-        const m2 = giphyIdInPage.exec(text)
-        if (m2?.[1]) id = m2[1]
-      }
-      if (id) {
-        e.preventDefault()
-        const gifUrl = `https://media.giphy.com/media/${id}/giphy.gif`
-        const el = document.activeElement as HTMLTextAreaElement | null
-        const md = `\n![gif](${gifUrl})\n`
-        if (el && el.classList.contains('content-input')) {
-          const start = el.selectionStart ?? editContent.value.length
-          const end = el.selectionEnd ?? editContent.value.length
-          editContent.value = editContent.value.slice(0, start) + md + editContent.value.slice(end)
-          requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + md.length })
-        } else if (el && el.classList.contains('new-content-input')) {
-          const start = el.selectionStart ?? content.value.length
-          const end = el.selectionEnd ?? content.value.length
-          content.value = content.value.slice(0, start) + md + content.value.slice(end)
-          requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + md.length })
-        } else {
-          if (editingId.value) editContent.value += md
-          else content.value += md
-        }
-        return
-      }
-    }
-    return // allow normal paste if no giphy
-  }
-  // Validate MIME type and magic header to ensure it's an image
-  const mimeOk = file.type && file.type.startsWith('image/')
-  const header = await file.slice(0, 12).arrayBuffer().then(buf => new Uint8Array(buf)).catch(() => new Uint8Array())
-  const sig = Array.from(header.slice(0, 12))
-  const isPng = sig.length >= 8 && sig[0] === 0x89 && sig[1] === 0x50 && sig[2] === 0x4E && sig[3] === 0x47
-  const isJpg = sig.length >= 3 && sig[0] === 0xFF && sig[1] === 0xD8 && sig[2] === 0xFF
-  const isGif = sig.length >= 3 && sig[0] === 0x47 && sig[1] === 0x49 && sig[2] === 0x46
-  const isWebp = sig.length >= 12 && sig[0] === 0x52 && sig[1] === 0x49 && sig[2] === 0x46 && sig[3] === 0x46 && sig[8] === 0x57 && sig[9] === 0x45 && sig[10] === 0x42 && sig[11] === 0x50
-  const isBmp = sig.length >= 2 && sig[0] === 0x42 && sig[1] === 0x4D
-  const headerOk = isPng || isJpg || isGif || isWebp || isBmp
-  if (!(mimeOk || headerOk)) {
-    showToast('Pasted content is not an image', 'error')
-    return // allow normal paste
-  }
-  // Now we know it's an image; intercept paste
-  e.preventDefault()
-  try {
-    uploading.value = true
-    const { url } = await api.upload('/api/upload', 'image', file)
-    const finalUrl = url.startsWith('/uploads/') ? `${apiBase}${url}` : url
-    // Guard against accidental double insert (e.g., duplicate paste events)
-    const now = Date.now()
-    if (finalUrl === lastInsertUrl && now - lastInsertAt < 1200) {
-      uploading.value = false
-      return
-    }
-    lastInsertUrl = finalUrl
-    lastInsertAt = now
-    // Insert markdown at current caret position in the textarea
-    const el = document.activeElement as HTMLTextAreaElement | null
-    const md = `\n![image](${finalUrl})\n`
-    if (el && el.classList.contains('content-input')) {
-      const start = el.selectionStart ?? editContent.value.length
-      const end = el.selectionEnd ?? editContent.value.length
-      editContent.value = editContent.value.slice(0, start) + md + editContent.value.slice(end)
-      requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + md.length })
-    } else if (el && el.classList.contains('new-content-input')) {
-      const start = el.selectionStart ?? content.value.length
-      const end = el.selectionEnd ?? content.value.length
-      content.value = content.value.slice(0, start) + md + content.value.slice(end)
-      requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + md.length })
-    } else {
-      // Fallback to append to edit or new content if focused element not detectable
-      if (editingId.value) editContent.value += md
-      else content.value += md
-    }
-  } catch (err: any) {
-    error.value = err?.message || 'Upload failed'
-    showToast('Upload failed', 'error')
-  } finally {
-    uploading.value = false
-  }
-}
+// Hook up composables for paste handling and keybindings
+const { onPaste } = usePasteMedia({
+  authEditing: () => auth.editing,
+  editingId,
+  editContent,
+  newContent: content,
+  uploading,
+  showToast,
+})
 
-function onComposerKeydown(e: KeyboardEvent) {
-  const target = e.target as HTMLElement | null
-  const isTextarea = target instanceof HTMLTextAreaElement
-  // Ctrl/Cmd+K for link insertion in textareas
-  if (isTextarea && (e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
-    e.preventDefault()
-    const el = target as HTMLTextAreaElement
-    const isEdit = el.classList.contains('content-input')
-    const isNew = el.classList.contains('new-content-input')
-    if (!isEdit && !isNew) return
-    const model = isEdit ? editContent : content
-    const start = el.selectionStart ?? 0
-    const end = el.selectionEnd ?? start
-    const selected = model.value.slice(start, end) || 'link text'
-    const url = window.prompt('Enter URL to link to:', 'https://') || ''
-    if (!url) return
-    const md = `[${selected}](${url})`
-    model.value = model.value.slice(0, start) + md + model.value.slice(end)
-    requestAnimationFrame(() => {
-      const caret = start + md.length
-      el.selectionStart = el.selectionEnd = caret
-      el.focus()
-    })
-    return
-  }
-  // Escape to save edit or create
-  if (e.key === 'Escape') {
-    e.preventDefault()
-    if (editingId.value) {
-      saveEdit()
-    } else if (auth.editing && (title.value.trim() || content.value.trim())) {
-      create()
-    }
-  }
-}
+const { onComposerKeydown } = useComposerKeys({
+  editingId,
+  editContent,
+  newContent: content,
+  title,
+  saveEdit,
+  createNew: create,
+})
 
 onMounted(() => {
   fetchPosts()

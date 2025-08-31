@@ -1,5 +1,7 @@
 // Nuxt 3 configuration for web app
 // Exposes API base via public runtime config and enables Pinia
+import { defineNuxtConfig } from 'nuxt/config'
+
 export default defineNuxtConfig({
   modules: [
     '@pinia/nuxt',
@@ -16,6 +18,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3388',
+      // Used by pages/p/[slug].vue for OG/Twitter image fallback
+      socialFallback: process.env.NUXT_PUBLIC_SOCIAL_FALLBACK || '',
     },
   },
   typescript: {
