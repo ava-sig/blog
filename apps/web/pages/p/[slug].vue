@@ -171,7 +171,10 @@ async function fetchOne() {
       }
       useHead({
         title: post.value.title || 'Post',
-        link: [ { rel: 'canonical', href: pageUrl } ],
+        link: [
+          { rel: 'canonical', href: pageUrl },
+          ...(img ? [{ rel: 'preload', as: 'image', href: img }] : []),
+        ],
         meta,
       })
     }

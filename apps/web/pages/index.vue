@@ -59,7 +59,7 @@
           >
             <NuxtLink
               v-if="!auth.editing"
-              :to="`/p/${p.slug || p.id}`"
+              :to="`/p/${canonicalSlug(p)}`"
               class="card-link-overlay"
               aria-hidden="true"
               tabindex="-1"
@@ -108,7 +108,7 @@
             <template v-else>
               <h4 class="m-0 mb-2 text-[21px] font-semibold leading-tight tracking-tight">
                 <NuxtLink
-                  :to="`/p/${p.slug || p.id}`"
+                  :to="`/p/${canonicalSlug(p)}`"
                   class="no-underline text-base-text hover:text-indigo-300 focus-ring"
                   @click.stop
                 >
@@ -350,8 +350,22 @@ function firstImageUrlFromMarkdown(text: string): string | null {
   return u
 }
 
+function titleToSlug(input: string): string {
+  return String(input || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function canonicalSlug(p: any): string {
+  const t = titleToSlug(p?.title || '')
+  return t || p?.slug || p?.id || ''
+}
+
 function postUrl(p: any): string {
-  const slug = p?.slug || p?.id
+  const slug = canonicalSlug(p)
   if (!slug) return ''
   if (typeof window !== 'undefined') return `${location.origin}/p/${slug}`
   return `/p/${slug}`
