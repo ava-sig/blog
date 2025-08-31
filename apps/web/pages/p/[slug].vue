@@ -20,8 +20,36 @@
           </svg>
         </a>
 
-        <h4 class="m-0 mb-2 text-[21px] font-semibold leading-tight tracking-tight">{{ post.title }}</h4>
-        <div class="prose-content prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-img:rounded-xl prose-img:shadow-subtle" v-html="renderContent(post.content)"></div>
+        <button v-if="auth.editing && !isEditing" class="btn-edit focus-ring" @click="startEdit" title="Edit" aria-label="Edit">Edit</button>
+        <template v-if="auth.editing && isEditing">
+          <input
+            v-model="editTitle"
+            class="input !text-base !font-medium !mb-2"
+            placeholder="Title"
+            @keydown.enter.prevent="saveEdit"
+            @keydown="onComposerKeydown"
+            autofocus
+          />
+          <textarea
+            v-model="editContent"
+            class="input !min-h-[220px]"
+            rows="8"
+            placeholder="Content"
+            @keydown="onComposerKeydown"
+            @paste.stop="onPaste($event as any)"
+          />
+          <div v-if="uploading" class="inline-flex items-center gap-2 text-xs text-base-sub mt-2">
+            <span class="spinner" /> Uploading image…
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button class="btn-primary focus-ring" @click="saveEdit">Save</button>
+            <button class="btn-secondary focus-ring" @click="cancelEdit">Cancel</button>
+          </div>
+        </template>
+        <template v-else>
+          <h4 class="m-0 mb-2 text-[21px] font-semibold leading-tight tracking-tight">{{ post.title }}</h4>
+          <div class="prose-content prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-img:rounded-xl prose-img:shadow-subtle" v-html="renderContent(post.content)"></div>
+        </template>
         <div class="text-[12px] text-base-sub mt-3 pt-2 border-t border-base-border/60">Updated: {{ formatTs(post.updatedAt || post.createdAt) }}</div>
       </div>
     </section>
@@ -29,10 +57,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { useApi } from '~/composables/useApi'
+import { useAuth } from '~/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -43,6 +72,11 @@ const apiBase = ((runtime.public as any)?.apiBase || '').replace(/\/$/, '')
 const loading = ref(false)
 const error = ref('')
 const post = ref<any | null>(null)
+const auth = useAuth()
+const isEditing = ref(false)
+const editTitle = ref('')
+const editContent = ref('')
+const uploading = ref(false)
 
 function formatTs(input: string) {
   try {
@@ -55,6 +89,122 @@ function formatTs(input: string) {
   } catch {
     return input
   }
+
+function startEdit() {
+  if (!auth.editing || !post.value) return
+  isEditing.value = true
+  nextTick(() => {
+    // no-op placeholder for focus management
+  })
+}
+
+function cancelEdit() {
+  isEditing.value = false
+  if (post.value) {
+    editTitle.value = post.value.title
+    editContent.value = post.value.content
+  }
+}
+
+function titleToSlug(input: string): string {
+  return String(input || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+async function saveEdit() {
+  if (!post.value) return
+  try {
+    const payload = {
+      title: editTitle.value,
+      content: editContent.value,
+      slug: titleToSlug(editTitle.value),
+      status: 'draft',
+    }
+    const updated = await api.put(`/posts/${post.value.id}`, payload)
+    post.value = updated
+    // ensure head reflects new title
+    useHead({ title: post.value.title || 'Post' })
+    isEditing.value = false
+  } catch (e: any) {
+    error.value = e?.message || 'Failed to save post'
+  }
+}
+
+function onComposerKeydown(e: KeyboardEvent) {
+  const target = e.target as HTMLElement | null
+  const isTextarea = target instanceof HTMLTextAreaElement
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    if (isEditing.value) saveEdit()
+  }
+  // Ctrl/Cmd+K to insert link markdown
+  if (isTextarea && (e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    const el = target as HTMLTextAreaElement
+    const start = el.selectionStart ?? 0
+    const end = el.selectionEnd ?? start
+    const model = editContent
+    const selected = model.value.slice(start, end) || 'link text'
+    const url = window.prompt('Enter URL to link to:', 'https://') || ''
+    if (!url) return
+    const md = `[${selected}](${url})`
+    model.value = model.value.slice(0, start) + md + model.value.slice(end)
+    requestAnimationFrame(() => {
+      const caret = start + md.length
+      el.selectionStart = el.selectionEnd = caret
+      el.focus()
+    })
+  }
+}
+
+async function onPaste(e: ClipboardEvent) {
+  if (!auth.editing || !isEditing.value) return
+  if (uploading.value) return
+  const items = e.clipboardData?.items
+  const files = e.clipboardData?.files
+  let file: File | null = null
+  if (items && items.length > 0) {
+    const it = Array.from(items).find(i => (i.kind === 'file' || i.type.startsWith('image/')))
+    file = it?.getAsFile() || null
+  }
+  if (!file && files && files.length > 0) {
+    const f = Array.from(files).find(f => f.type.startsWith('image/'))
+    file = f || null
+  }
+  if (!file) return
+  const mimeOk = file.type && file.type.startsWith('image/')
+  const header = await file.slice(0, 12).arrayBuffer().then(buf => new Uint8Array(buf)).catch(() => new Uint8Array())
+  const sig = Array.from(header.slice(0, 12))
+  const isPng = sig.length >= 8 && sig[0] === 0x89 && sig[1] === 0x50 && sig[2] === 0x4E && sig[3] === 0x47
+  const isJpg = sig.length >= 3 && sig[0] === 0xFF && sig[1] === 0xD8 && sig[2] === 0xFF
+  const isGif = sig.length >= 3 && sig[0] === 0x47 && sig[1] === 0x49 && sig[2] === 0x46
+  const isWebp = sig.length >= 12 && sig[0] === 0x52 && sig[1] === 0x49 && sig[2] === 0x46 && sig[3] === 0x46 && sig[8] === 0x57 && sig[9] === 0x45 && sig[10] === 0x42 && sig[11] === 0x50
+  const isBmp = sig.length >= 2 && sig[0] === 0x42 && sig[1] === 0x4D
+  const headerOk = isPng || isJpg || isGif || isWebp || isBmp
+  if (!(mimeOk || headerOk)) return
+  e.preventDefault()
+  try {
+    uploading.value = true
+    const { url } = await api.upload('/api/upload', 'image', file)
+    const finalUrl = url.startsWith('/uploads/') ? `${apiBase}${url}` : url
+    const el = document.activeElement as HTMLTextAreaElement | null
+    const md = `\n![image](${finalUrl})\n`
+    if (el) {
+      const start = el.selectionStart ?? editContent.value.length
+      const end = el.selectionEnd ?? editContent.value.length
+      editContent.value = editContent.value.slice(0, start) + md + editContent.value.slice(end)
+      requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + md.length })
+    } else {
+      editContent.value += md
+    }
+  } finally {
+    uploading.value = false
+  }
+}
 
 }
 
@@ -184,6 +334,9 @@ async function fetchOne() {
         ],
         meta,
       })
+      // Prepare edit buffers
+      editTitle.value = post.value.title
+      editContent.value = post.value.content
     }
   } catch (e: any) {
     error.value = e?.message || 'Failed to load post'
@@ -213,6 +366,17 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.btn-edit {
+  position: absolute;
+  top: 8px;
+  right: 44px; /* leave space for xshare */
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid #232329;
+  border-radius: 6px;
+  background: #111114;
+  color: #e5e7eb;
+}
 .prose-content {
   white-space: pre-wrap; /* preserve newlines and blank lines */
 }
