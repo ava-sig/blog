@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const { randomUUID } = require('crypto')
 const multer = require('multer')
+const jwt = require('jsonwebtoken')
 
 const app = express()
 app.use(express.json())
@@ -39,6 +40,16 @@ function writePosts(posts) {
   fs.writeFileSync(postsFile, JSON.stringify(posts, null, 2))
 }
 
+// Simple slugify mirroring frontend behavior: prefer lowercase, dashes, trim
+function slugify(input) {
+  if (!input || typeof input !== 'string') return ''
+  return input
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 // Health
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 
@@ -59,31 +70,88 @@ app.get('/api/posts/:id', (req, res) => {
   res.json(p)
 })
 
-app.post('/api/posts', (req, res) => {
+// Simple Bearer token auth for write routes
+function requireAuth(req, res, next) {
+  const header = req.headers['authorization'] || ''
+  const m = /^Bearer\s+(.+)$/i.exec(header)
+  const token = m?.[1] || ''
+  const staticToken = process.env.API_TOKEN || ''
+  const jwtSecret = process.env.JWT_SECRET || ''
+
+  // Allow explicit insecure writes in dev only when neither JWT nor static token is configured
+  if (!jwtSecret && !staticToken) {
+    if (process.env.ALLOW_INSECURE_WRITES === '1') return next()
+    return res.status(401).json({ error: 'unauthorized' })
+  }
+
+  // Prefer JWT verification when secret is configured
+  if (jwtSecret) {
+    try {
+      const payload = jwt.verify(token, jwtSecret)
+      // Optional authorization policy: require admin-like claims
+      // Accept if role=admin, admin=true, user=admin, or scope/scopes contains 'admin'
+      const scopeStr = typeof payload?.scope === 'string' ? payload.scope : ''
+      const scopes = Array.isArray(payload?.scopes) ? payload.scopes : scopeStr.split(/[ ,]/).filter(Boolean)
+      const isAdmin = (
+        payload?.role === 'admin' ||
+        payload?.admin === true ||
+        payload?.user === 'admin' ||
+        (Array.isArray(scopes) && scopes.includes('admin'))
+      )
+      if (!isAdmin) return res.status(401).json({ error: 'unauthorized' })
+      return next()
+    } catch (err) {
+      // If JWT verification fails and a static token is configured, fall back to static match
+      if (staticToken && token === staticToken) return next()
+      return res.status(401).json({ error: 'unauthorized' })
+    }
+  }
+
+  // Fallback: static token equality
+  if (staticToken && token === staticToken) return next()
+  return res.status(401).json({ error: 'unauthorized' })
+}
+
+app.post('/api/posts', requireAuth, (req, res) => {
   const posts = readPosts()
-  const { title, content } = req.body || {}
+  const { title, content, slug, status } = req.body || {}
   if (!title) return res.status(400).json({ error: 'title required' })
   const id = randomUUID()
   const createdAt = new Date().toISOString()
-  const post = { id, title, content: content || '', createdAt, updatedAt: createdAt }
+  const post = {
+    id,
+    title,
+    content: content || '',
+    slug: slug || slugify(title),
+    status: status || 'draft',
+    createdAt,
+    updatedAt: createdAt,
+  }
   posts.unshift(post)
   writePosts(posts)
   res.status(201).json(post)
 })
 
-app.put('/api/posts/:id', (req, res) => {
+app.put('/api/posts/:id', requireAuth, (req, res) => {
   const posts = readPosts()
   const i = posts.findIndex(x => String(x.id) === String(req.params.id))
   if (i === -1) return res.status(404).json({ error: 'Not found' })
-  const { title, content } = req.body || {}
+  const { title, content, slug, status } = req.body || {}
   if (!title) return res.status(400).json({ error: 'title required' })
-  const updated = { ...posts[i], title, content: content ?? posts[i].content, updatedAt: new Date().toISOString() }
+  const updated = {
+    ...posts[i],
+    title,
+    content: content ?? posts[i].content,
+    slug: typeof slug === 'string' ? (slug || slugify(title)) : (posts[i].slug || slugify(title)),
+    status: typeof status === 'string' ? status : (posts[i].status || 'draft'),
+    updatedAt: new Date().toISOString(),
+  }
   posts[i] = updated
   writePosts(posts)
   res.json(updated)
 })
 
-app.delete('/api/posts/:id', (req, res) => {
+app.delete('/api/posts/:id', requireAuth, (req, res) => {
   const posts = readPosts()
   const idx = posts.findIndex(x => String(x.id) === String(req.params.id))
   if (idx === -1) return res.status(404).json({ error: 'Not found' })
@@ -103,7 +171,7 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }) // 10MB
 
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', requireAuth, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'no_file' })
   const url = `/uploads/${req.file.filename}`
   res.json({ ok: true, url })

@@ -12,39 +12,76 @@
               @blur="saveTitle"
               @keydown.enter.prevent="saveTitle"
               @keydown.escape.prevent="saveTitle"
-            />
+            >
           </template>
           <template v-else>
             <strong
               class="tracking-tight cursor-text"
-              @click="onTitleClick"
               :title="auth.editing ? 'Click to edit title' : ''"
+              @click="onTitleClick"
             >{{ siteTitle }}</strong>
           </template>
-          <NuxtLink class="text-base-sub hover:text-base-text transition" to="/">Home</NuxtLink>
+          <NuxtLink
+            class="text-base-sub hover:text-base-text transition"
+            to="/"
+          >
+            Home
+          </NuxtLink>
         </nav>
         <ClientOnly>
           <template #fallback>
-            <span class="edit-indicator" aria-hidden="true"></span>
+            <span
+              class="edit-indicator"
+              aria-hidden="true"
+            />
           </template>
-          <button class="edit-indicator" :class="{ on: auth.editing }" aria-label="Edit mode status" title="Edit mode" @click="onIndicatorClick"></button>
+          <button
+            class="edit-indicator"
+            :class="{ on: auth.editing }"
+            aria-label="Edit mode status"
+            title="Edit mode"
+            @click="onIndicatorClick"
+          />
         </ClientOnly>
       </div>
     </header>
-    <div v-if="showLogin" class="modal-backdrop" @click.self="closeLogin">
+    <div
+      v-if="showLogin"
+      class="modal-backdrop"
+      @click.self="closeLogin"
+    >
       <div class="modal">
-        <h4 style="margin:0 0 8px">Enter JWT</h4>
-        <p style="margin:0 0 8px;color:#666">Paste your JWT to enable edit mode.</p>
+        <h4 style="margin:0 0 8px">
+          Enter JWT
+        </h4>
+        <p style="margin:0 0 8px;color:#666">
+          Paste your JWT to enable edit mode.
+        </p>
         <textarea
           v-model="tokenInput"
           rows="4"
           placeholder="eyJhbGciOi..."
           style="width:100%;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
-        ></textarea>
-        <div v-if="loginError" style="color:#b00;margin-top:6px">{{ loginError }}</div>
+        />
+        <div
+          v-if="loginError"
+          style="color:#b00;margin-top:6px"
+        >
+          {{ loginError }}
+        </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
-          <button class="btn" @click="closeLogin">Cancel</button>
-          <button class="btn primary" @click="submitToken">Enable Edit</button>
+          <button
+            class="btn"
+            @click="closeLogin"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn primary"
+            @click="submitToken"
+          >
+            Enable Edit
+          </button>
         </div>
       </div>
     </div>
@@ -65,7 +102,6 @@
       </div>
     </footer>
   </div>
-  
 </template>
 
 <script setup lang="ts">
@@ -145,7 +181,7 @@ function saveTitle() {
   try { localStorage.setItem('site.title', t) } catch {}
 }
 
-function base64UrlDecode(str) {
+function base64UrlDecode(str: string): string {
   try {
     // Replace URL-safe chars and pad
     str = str.replace(/-/g, '+').replace(/_/g, '/')
@@ -157,7 +193,7 @@ function base64UrlDecode(str) {
   } catch { return '' }
 }
 
-function validateJwtFormatAndExpiry(token) {
+function validateJwtFormatAndExpiry(token: string): { ok: boolean; reason?: string } {
   if (typeof token !== 'string') return { ok: false, reason: 'Token must be a string' }
   const parts = token.split('.')
   if (parts.length !== 3) return { ok: false, reason: 'Invalid JWT format' }
@@ -174,7 +210,7 @@ function validateJwtFormatAndExpiry(token) {
   }
 }
 
-function persistToken(token) {
+function persistToken(token: string): void {
   try {
     localStorage.setItem('token', token)
     sessionStorage.setItem('auth.session', '1')

@@ -1,0 +1,39 @@
+name: Post-merge Smoke
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  smoke-e2e:
+    runs-on: ubuntu-latest
+    env:
+      # Remote/staging API base; required secret
+      API_BASE: ${{ secrets.E2E_TARGET_URL }}
+      # Optional JWT secret if remote environment expects signed tokens from tests
+      JWT_SECRET: ${{ secrets.E2E_JWT_SECRET || '' }}
+      FRONTEND_PORT: '5999'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install web deps
+        run: npm ci --prefix apps/web
+      - name: Install Playwright browsers
+        run: |
+          cd apps/web
+          npx playwright install --with-deps
+      - name: Show target URL
+        run: |
+          if [ -z "${API_BASE}" ]; then
+            echo "E2E_TARGET_URL secret is not set; aborting smoke tests" >&2
+            exit 1
+          fi
+          echo "Running smoke E2E against ${API_BASE}"
+      - name: Run E2E tests (remote API)
+        run: npm run test:e2e
+        working-directory: apps/web

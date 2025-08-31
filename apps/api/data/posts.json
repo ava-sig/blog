@@ -1,10 +1,46 @@
 [
   {
-    "id": "07d8d9a9-5278-4123-9f7c-4af827267ea9",
-    "title": "Lorem Ipsum",
-    "content": "\nWhat is Lorem Ipsum?\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-    "createdAt": "2025-08-30T16:05:48.328Z",
-    "updatedAt": "2025-08-30T16:18:54.895Z"
+    "id": "bfc64f4d-7d9b-4fbf-a02a-ee71658bf54f",
+    "title": "E2E Post 1756626588400",
+    "content": "Hello from E2E at 2025-08-31T07:49:48.400Z",
+    "slug": "e2e-post-1756626588400",
+    "status": "draft",
+    "createdAt": "2025-08-31T07:49:48.429Z",
+    "updatedAt": "2025-08-31T07:49:48.429Z"
+  },
+  {
+    "id": "6598bd4d-25ee-4e50-ae15-9102c4df8e9e",
+    "title": "ok",
+    "content": "",
+    "slug": "ok",
+    "status": "draft",
+    "createdAt": "2025-08-31T07:34:31.977Z",
+    "updatedAt": "2025-08-31T07:34:31.977Z"
+  },
+  {
+    "id": "d20249b9-37c3-4cb8-9949-032739983472",
+    "title": "fallback ok",
+    "content": "",
+    "slug": "fallback-ok",
+    "status": "draft",
+    "createdAt": "2025-08-31T07:34:31.973Z",
+    "updatedAt": "2025-08-31T07:34:31.973Z"
+  },
+  {
+    "id": "6235c23f-48bc-4436-959a-794b96af43eb",
+    "title": "JWT ok",
+    "content": "",
+    "slug": "jwt-ok",
+    "status": "draft",
+    "createdAt": "2025-08-31T07:34:31.958Z",
+    "updatedAt": "2025-08-31T07:34:31.958Z"
+  },
+  {
+    "id": "c7f7480e-4dee-481d-958f-78ba0d7f7e97",
+    "title": "i want a second redbull",
+    "content": "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExanllNnV4NXo0cXRqYTByejE2OHM3OGJva2UwanE2cTFoMXFpd2ltYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/javHxbM3JgrcY/giphy.gif",
+    "createdAt": "2025-08-31T06:17:58.827Z",
+    "updatedAt": "2025-08-31T06:17:58.827Z"
   },
   {
     "id": "32aef0e6-964a-4f38-9a68-31fc08f70ee7",

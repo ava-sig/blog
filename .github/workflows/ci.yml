@@ -13,6 +13,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            apps/api/package-lock.json
+            apps/web/package-lock.json
       - run: node scripts/validate-glyphs.js
 
   contracts:
@@ -22,4 +27,128 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            apps/api/package-lock.json
+            apps/web/package-lock.json
       - run: node scripts/check-contracts.js
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
+      - name: Install API deps (clean)
+        run: npm ci --prefix apps/api
+      - name: Lint API
+        run: npm run --prefix apps/api lint
+      - name: Run all tests and guards
+        run: npm run test:all
+        working-directory: .
+
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install web deps
+        run: npm ci
+        working-directory: apps/web
+      - name: Prepare Nuxt types (.nuxt)
+        run: npx nuxi prepare
+        working-directory: apps/web
+      - name: Diagnostics (commit and web scripts)
+        run: |
+          echo "Commit: $(git rev-parse --short HEAD)"
+          node -e "console.log(require('./apps/web/package.json').scripts)"
+          npx vitest --version
+      - name: Test web (unit)
+        run: npm run --silent test:unit
+        working-directory: apps/web
+      - name: Typecheck web
+        run: npm run typecheck
+        working-directory: apps/web
+      - name: Lint web
+        run: npm run lint
+        working-directory: apps/web
+      - name: Build web app
+        run: npm run build
+        working-directory: apps/web
+
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      # Port mapping from docker-compose.yml for API
+      API_BASE: http://127.0.0.1:3388
+      # Use a CI-scoped test secret; API will use this via .env injection below
+      JWT_SECRET: ${{ secrets.E2E_JWT_SECRET || 'testsecret-ci' }}
+      FRONTEND_PORT: '5999'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
+      - name: Install web deps
+        run: npm ci --prefix apps/web
+      - name: Install Playwright browsers
+        run: |
+          cd apps/web
+          npx playwright install --with-deps
+      - name: Create .env for CI
+        run: |
+          cat > .env <<EOF
+          POSTGRES_USER=blog
+          POSTGRES_PASSWORD=blogpw
+          POSTGRES_DB=blog
+          POSTGRES_PORT=5433
+          JWT_SECRET=${JWT_SECRET}
+          CORS_ORIGIN=http://localhost:${FRONTEND_PORT}
+          PUBLIC_BASE_URL=${API_BASE}
+          NUXT_PUBLIC_API_BASE=${API_BASE}
+          EOF
+      - name: Preinstall API deps on host (bind-mounted)
+        run: npm ci --prefix apps/api
+      - name: Start docker services (db, api)
+        run: |
+          docker compose up -d db api
+      - name: Wait for API to be ready
+        run: |
+          echo "Waiting for API container health at ${API_BASE}..."
+          cid=$(docker compose ps -q api)
+          if [ -z "$cid" ]; then echo "API container ID not found"; docker compose ps; exit 1; fi
+          for i in {1..240}; do
+            status=$(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null || echo "unknown")
+            if [ "$status" = "healthy" ]; then echo "API healthy"; exit 0; fi
+            if (( i % 20 == 0 )); then
+              echo "[${i}] status=$status"
+              docker compose ps
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy in time"
+          echo "--- docker compose ps ---"
+          docker compose ps
+          echo "--- api logs (last 200 lines) ---"
+          docker compose logs --tail=200 api || true
+          echo "--- db logs (last 100 lines) ---"
+          docker compose logs --tail=100 db || true
+          exit 1
+      - name: Run E2E tests
+        run: npm run test:e2e
+        working-directory: apps/web
+      - name: Teardown docker
+        if: always()
+        run: docker compose down -v

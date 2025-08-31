@@ -1,6 +1,9 @@
 <template>
   <transition name="fade-up">
-    <div v-if="visible" class="fixed left-1/2 -translate-x-1/2 bottom-5 z-50">
+    <div
+      v-if="visible"
+      class="fixed left-1/2 -translate-x-1/2 bottom-5 z-50"
+    >
       <div
         class="rounded-lg border px-3 py-2 text-sm shadow-lift"
         :class="typeClass"
