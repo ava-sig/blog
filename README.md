@@ -13,6 +13,32 @@ Use the production Docker setup below to deploy quickly with Docker Hub images a
   - Ensure hidden-layer content (docs/, internal/, glyphs/) is not staged.
 - Open PRs using the provided template; include governance adherence and runtime ports.
 
+### Sprint End Ritual
+- Merge the feature branch to `main` when all CI checks are green.
+- Append the latest changes to the `Changelog` section in this `README.md`.
+- Create and push an annotated tag for the release:
+  ```bash
+  VERSION=v0.2.3
+  git tag -a "$VERSION" -m "release: $VERSION"
+  git push origin "$VERSION"
+  ```
+- Delete the merged branch locally and on origin:
+  ```bash
+  BR=feat/v0.2.3-seo-security-editor
+  git branch -d "$BR" || true
+  git push origin --delete "$BR" || true
+  ```
+- Deploy production images (Docker Hub pull + compose up):
+  ```bash
+  # Ensure .env.prod is present (see .env.prod.example)
+  docker compose --env-file .env.prod -f docker-compose.prod.yml pull
+  docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+  ```
+- Post-merge smoke test: confirm `.github/workflows/post-merge-smoke.yml` passes
+  against the remote API URL (checks auth, basic endpoints, and og:image).
+- Governance upkeep: keep branch protection required checks in sync with
+  current workflow job names to avoid stale/phantom failures.
+
 ### Optional local pre-commit hook
 Create a local git hook to block commits if checks fail:
 
@@ -171,3 +197,15 @@ Notes:
   - Seeds a CI `.env` with `JWT_SECRET` (from `E2E_JWT_SECRET` secret), `API_BASE`, and `NUXT_PUBLIC_API_BASE`.
   - Installs Playwright browsers and runs the E2E suite with the frontend on `FRONTEND_PORT=5999`.
   - Tears down Docker after completion.
+
+---
+
+## Changelog
+
+### v0.2.3 — 2025-08-31
+- CI/Vitest: remove unsupported CLI flags; scope via `apps/web/vitest.config.ts` `test.include`.
+- CI: run `web-build` inside `apps/web`; add diagnostics (commit SHA, scripts, Vitest version).
+- E2E: Dockerized API healthchecks and health wait loop for stable Playwright runs.
+- Workflows: `Glyph & Docs Guard` installs `apps/api` deps and adds diagnostics; root `test:all` installs API deps.
+- Post-merge smoke workflow added to validate prod-like API URL.
+- Docs: add Sprint End Ritual and changelog.
