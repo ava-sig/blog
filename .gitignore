@@ -35,3 +35,17 @@ glyphs/**
 !docs/MIGRATION.md
 !internal/registry.json
 !internal/adr/**
+
+# --- Project specific ignores ---
+# Nuxt build output (web)
+apps/web/.output/
+
+# Playwright/Vitest artifacts
+apps/web/test-results/
+apps/web/coverage/
+
+# API uploaded files (content storage)
+apps/api/data/uploads/
+
+# Stray nested api apps folder (generated/mistaken mount)
+apps/api/apps/
