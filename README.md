@@ -125,3 +125,49 @@ cd apps/web && npm i && npm run dev
 # API dev
 cd ../api && npm i && npm run dev
 ```
+
+---
+
+## E2E Testing (Playwright)
+
+The E2E tests run the Nuxt app locally and target the API running in Docker.
+
+- The frontend server runs on `FRONTEND_PORT` (default `5999`).
+- The tests and the Nuxt app talk to the Docker-exposed API via `API_BASE` (default `http://localhost:3388`).
+- Real JWT tokens are generated in tests using `JWT_SECRET` (HS256).
+
+### Required environment variables
+Add these to your `.env` (see `.env.example`):
+
+```ini
+JWT_SECRET=change_me_in_local_env
+API_BASE=http://localhost:3388
+FRONTEND_PORT=5999
+# Optional: used by Nuxt runtime as well
+NUXT_PUBLIC_API_BASE=http://localhost:3388
+```
+
+### Run E2E locally
+
+```bash
+# 1) Start API + DB (in another terminal)
+docker compose up -d db api
+
+# 2) From repo root, run Playwright tests
+cd apps/web
+npm i
+npx playwright install --with-deps
+npm run test:e2e
+```
+
+Notes:
+- Tests will skip if `JWT_SECRET` is missing.
+- The Playwright config loads env from the repo root `.env` and starts only Nuxt.
+- If port 5999 is busy, set `FRONTEND_PORT` to another free port in `.env`.
+
+### CI behavior
+- `.github/workflows/ci.yml` defines an `e2e` job that:
+  - Brings up `db` + `api` via `docker compose` (API exposed on host `:3388`).
+  - Seeds a CI `.env` with `JWT_SECRET` (from `E2E_JWT_SECRET` secret), `API_BASE`, and `NUXT_PUBLIC_API_BASE`.
+  - Installs Playwright browsers and runs the E2E suite with the frontend on `FRONTEND_PORT=5999`.
+  - Tears down Docker after completion.
