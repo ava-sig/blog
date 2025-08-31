@@ -29,8 +29,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i --silent
-      - run: npm run test:all
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            apps/api/package-lock.json
+      - name: Install API deps (clean)
+        run: npm ci --prefix apps/api
+      - name: Diagnostics (API deps)
+        run: |
+          echo "Commit: $(git rev-parse --short HEAD)"
+          ls -la apps/api/node_modules | head -n 50 || true
+          npm --prefix apps/api ls express || true
+      - name: Run all tests and guards (root script)
+        run: npm run test:all
   validate-glyphs:
     runs-on: ubuntu-latest
     steps:
