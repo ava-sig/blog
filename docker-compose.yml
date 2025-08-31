@@ -9,6 +9,11 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
   api:
     image: node:20-alpine
     working_dir: /app
@@ -20,9 +25,16 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
     depends_on: [db]
-    command: sh -c "npm install && npm run dev"
+    # Dependencies are preinstalled on host (bind mount); just start the dev server
+    command: sh -c "npm run dev"
     ports:
       - "3388:3000"
+    healthcheck:
+      # Use Node (already present) for an HTTP check to avoid needing curl/wget in the image
+      test: ["CMD-SHELL", "node -e 'const http=require(\"http\");const req=http.request({host:\"localhost\",port:3000,path:\"/api/posts\"},res=>{process.exit(res.statusCode===200?0:1)});req.on(\"error\",()=>process.exit(1));req.end();' "]
+      interval: 5s
+      timeout: 5s
+      retries: 40
   web:
     image: node:20-alpine
     working_dir: /app
