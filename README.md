@@ -57,6 +57,50 @@ This repository avoids committing private governance/glyph content; CI enforces 
 
 ---
 
+## Quick Deploy (Docker Hub: ava2016)
+
+Deploy the latest release using prebuilt images from Docker Hub namespace `ava2016`.
+
+1) Create `.env.prod` next to `docker-compose.prod.yml` (use `.env.prod.example` as a base):
+
+```env
+# DB
+POSTGRES_USER=blog
+POSTGRES_PASSWORD=change_me
+POSTGRES_DB=blogdb
+POSTGRES_PORT=5433
+
+# API
+JWT_SECRET=super_secret_value
+CORS_ORIGIN=https://your.site
+PUBLIC_BASE_URL=https://api.your.site
+
+# Web (browser calls API here)
+NUXT_PUBLIC_API_BASE=https://api.your.site
+```
+
+2) Pull and start services (from repo root):
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml pull
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml ps
+```
+
+Notes
+- Web runs in the container on PORT=5000; expose via Nginx or port mapping (e.g., 5588:5000).
+- API runs on 3000; expose via Nginx or mapping (e.g., 3388:3000).
+- Current web image includes the Nuxt vite-builder runtime fix and stable Nitro start.
+
+Rollback
+```bash
+# If you tag images per release, set TAG (e.g., v0.2.4) in .env.prod or compose file
+docker compose --env-file .env.prod -f docker-compose.prod.yml pull
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+```
+
+---
+
 ## Production Deploy (Docker Hub + docker-compose)
 
 We provide a production compose file: `docker-compose.prod.yml`.
