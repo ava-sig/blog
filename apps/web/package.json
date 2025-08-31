@@ -10,7 +10,7 @@
     "typecheck": "npx nuxi typecheck",
     "lint": "eslint --ext .js,.ts,.vue .",
     "test": "vitest run",
-    "test:unit": "vitest run \"tests/**/*.test.ts\"",
+    "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
   },
