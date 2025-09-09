@@ -1,0 +1,53 @@
+name: Post-Merge Ritual
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  cleanup-and-remind:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Delete merged branch (if not main)
+        if: github.event.pull_request.head.ref != github.event.pull_request.base.ref
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [ "$BRANCH" != "main" ]; then
+            echo "Deleting merged branch: $BRANCH"
+            # Delete remote branch; ignore error if already deleted or protected
+            curl -s -X DELETE \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/$REPO/git/refs/heads/$BRANCH" \
+              || true
+          fi
+
+      - name: Post changelog reminder comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request
+            const body = [
+              'Post-merge ritual executed:',
+              '- [x] Branch auto-delete attempted.',
+              '- [ ] Verify README.md changelog includes this PR under current sprint tag.',
+              '',
+              'If not, please add a line under the Changelog section now.\n\n— GOV-CORE-013'
+            ].join('\n')
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body,
+            })
