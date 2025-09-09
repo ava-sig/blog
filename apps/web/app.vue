@@ -3,24 +3,29 @@
     <header class="border-b border-base-border bg-base-panel">
       <div class="container-page h-14 flex items-center justify-between gap-4">
         <nav class="flex items-center gap-4 text-base-text">
-          <template v-if="editingTitle">
-            <input
-              v-model="siteTitle"
-              class="input !py-1 !px-2 !h-8 !text-sm"
-              placeholder="Site title"
-              autofocus
-              @blur="saveTitle"
-              @keydown.enter.prevent="saveTitle"
-              @keydown.escape.prevent="saveTitle"
-            >
-          </template>
-          <template v-else>
-            <strong
-              class="tracking-tight cursor-text"
-              :title="auth.editing ? 'Click to edit title' : ''"
-              @click="onTitleClick"
-            >{{ siteTitle }}</strong>
-          </template>
+          <ClientOnly>
+            <template #fallback>
+              <strong class="tracking-tight">Glyphic Blog</strong>
+            </template>
+            <template v-if="editingTitle">
+              <input
+                v-model="siteTitle"
+                class="input !py-1 !px-2 !h-8 !text-sm"
+                placeholder="Site title"
+                autofocus
+                @blur="saveTitle"
+                @keydown.enter.prevent="saveTitle"
+                @keydown.escape.prevent="saveTitle"
+              >
+            </template>
+            <template v-else>
+              <strong
+                class="tracking-tight cursor-text"
+                :title="auth.editing ? 'Click to edit title' : ''"
+                @click="onTitleClick"
+              >{{ siteTitle }}</strong>
+            </template>
+          </ClientOnly>
           <NuxtLink
             class="text-base-sub hover:text-base-text transition"
             to="/"
@@ -110,6 +115,7 @@ import { useAuth } from '~/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import { onMounted, ref } from 'vue'
 import { useRuntimeConfig } from 'nuxt/app'
+import { useErrors } from '~/composables/useErrors'
 
 const auth = useAuth()
 const route = useRoute()
@@ -117,6 +123,7 @@ const router = useRouter()
 const showLogin = ref(false)
 const tokenInput = ref('')
 const loginError = ref('')
+const { formatApiError } = useErrors()
 
 // Editable site title
 const siteTitle = ref('Glyphic Blog')
@@ -231,10 +238,34 @@ async function submitToken() {
     loginError.value = res.reason || 'Invalid token'
     return
   }
-  // Accept client-side validity and enable editing
-  auth.setToken(t)
-  persistToken(t)
-  showLogin.value = false
+  // Verify authorization server-side before enabling edit mode
+  try {
+    const cfg = useRuntimeConfig()
+    const base = (cfg.public as any)?.apiBase || ''
+    const url = `${String(base).replace(/\/$/, '')}/api/authz`
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${t}` } })
+    if (!r.ok) {
+      // Attempt to parse structured error
+      let code = ''
+      let desc = ''
+      try {
+        const txt = await r.text()
+        const data = txt ? JSON.parse(txt) : {}
+        if (typeof data.error === 'string') code = data.error
+        if (typeof data.error_description === 'string') desc = data.error_description
+      } catch {}
+      const info = formatApiError(Object.assign(new Error(`${r.status} ${r.statusText}`), { status: r.status, code, description: desc }))
+      loginError.value = info.title
+      return
+    }
+    // Authorized -> persist and enable editing
+    auth.setToken(t)
+    persistToken(t)
+    showLogin.value = false
+  } catch (e: any) {
+    const info = formatApiError(e)
+    loginError.value = info.title
+  }
 }
 </script>
 

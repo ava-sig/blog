@@ -179,6 +179,11 @@ app.delete('/api/posts/:id', requireAuth, (req, res) => {
   res.json({ ok: true, id: removed.id })
 })
 
+// Authorization probe
+app.get('/api/authz', requireAuth, (_req, res) => {
+  res.json({ ok: true })
+})
+
 // File uploads
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
