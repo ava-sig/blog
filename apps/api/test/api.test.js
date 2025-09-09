@@ -125,6 +125,35 @@ test('health returns ok', async () => {
   assert.equal(body.ok, true)
 })
 
+// Authz probe
+
+test('GET /api/authz with admin claim -> 200', async () => {
+  const jwt = require('jsonwebtoken')
+  process.env.JWT_SECRET = 'test-secret'
+  const token = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET)
+  const res = await fetch(baseURL + '/api/authz', { headers: { Authorization: `Bearer ${token}` } })
+  assert.equal(res.status, 200)
+  const body = await res.json()
+  assert.equal(body.ok, true)
+})
+
+test('GET /api/authz without admin claim -> 403 insufficient_scope', async () => {
+  const jwt = require('jsonwebtoken')
+  process.env.JWT_SECRET = 'test-secret'
+  const token = jwt.sign({ role: 'user' }, process.env.JWT_SECRET)
+  const res = await fetch(baseURL + '/api/authz', { headers: { Authorization: `Bearer ${token}` } })
+  assert.equal(res.status, 403)
+  const body = await res.json()
+  assert.equal(body.error, 'insufficient_scope')
+})
+
+test('GET /api/authz without token -> 401 token_missing', async () => {
+  const res = await fetch(baseURL + '/api/authz')
+  assert.equal(res.status, 401)
+  const body = await res.json()
+  assert.equal(body.error, 'token_missing')
+})
+
 // Read list
 
 test('GET /api/posts returns array', async () => {
