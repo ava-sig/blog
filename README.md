@@ -253,3 +253,5 @@ Notes:
 - Workflows: `Glyph & Docs Guard` installs `apps/api` deps and adds diagnostics; root `test:all` installs API deps.
 - Post-merge smoke workflow added to validate prod-like API URL.
 - Docs: add Sprint End Ritual and changelog.
+ - API: RFC 6750-compliant auth errors (WWW-Authenticate) with specific codes (`token_missing`, `token_invalid`, `token_expired`, `insufficient_scope`, `auth_required`).
+ - Web: surface API auth errors via toast with friendly messages; add footer version label (`Blog vX.Y.Z`).

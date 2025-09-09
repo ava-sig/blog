@@ -210,6 +210,7 @@ import { useSlug } from '~/composables/useSlug'
 import { usePasteMedia } from '~/composables/usePasteMedia'
 import { useComposerKeys } from '~/composables/useComposerKeys'
 import { useApi } from '~/composables/useApi'
+import { useErrors } from '~/composables/useErrors'
 
 const router = useRouter()
 const route = useRoute()
@@ -220,6 +221,8 @@ const api = useApi()
 // Shared composables
 const { renderContent, firstImageUrl: _firstImageUrl } = useContent()
 const { titleToSlug, canonicalSlug, postUrl: _postUrl, xShareUrl } = useSlug()
+// Error formatting helper
+const { formatApiError } = useErrors()
 
 // SEO: homepage head tags and optional preload of fallback social image
 const runtime = useRuntimeConfig()
@@ -294,7 +297,9 @@ async function fetchPosts() {
   try {
     posts.value = await api.get('/posts')
   } catch (e: any) {
-    error.value = e?.message || 'Failed to load posts'
+    const info = formatApiError(e)
+    error.value = info.title
+    showToast(info.title, 'error')
   } finally {
     loading.value = false
   }
@@ -327,7 +332,9 @@ async function create() {
     await nextTick()
     setupReveal()
   } catch (e: any) {
-    error.value = e?.message || 'Failed to create post'
+    const info = formatApiError(e)
+    error.value = info.title
+    showToast(info.title, 'error')
   }
 }
 
@@ -337,8 +344,9 @@ async function remove(id: string) {
     posts.value = posts.value.filter(p => p.id !== id)
     showToast('Deleted', 'success')
   } catch (e: any) {
-    error.value = e?.message || 'Failed to delete post'
-    showToast('Delete failed', 'error')
+    const info = formatApiError(e)
+    error.value = info.title
+    showToast(info.title, 'error')
   }
 }
 
@@ -376,8 +384,9 @@ async function saveEdit() {
     if (i !== -1) posts.value[i] = updated
     showToast('Saved', 'success')
   } catch (e: any) {
-    error.value = e?.message || 'Failed to save post'
-    showToast('Save failed', 'error')
+    const info = formatApiError(e)
+    error.value = info.title
+    showToast(info.title, 'error')
   } finally {
     editingId.value = null
   }
