@@ -20,9 +20,31 @@ export function useApi() {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      const msg = text || `${res.status} ${res.statusText}`
-      throw new Error(`${method} ${url} -> ${msg}`)
+      // Try to parse structured API error
+      const www = res.headers.get('www-authenticate') || ''
+      let errorCode = ''
+      let errorDescription = ''
+      try {
+        const text = await res.text()
+        const data = text ? JSON.parse(text) : {}
+        if (data && typeof data.error === 'string') errorCode = data.error
+        if (!errorDescription && typeof data.error_description === 'string') errorDescription = data.error_description
+      } catch {}
+      if (!errorDescription && www) {
+        // Parse RFC6750-like header: Bearer realm="api", error="invalid_token", error_description="token expired"
+        const mErr = /error="([^"]+)"/i.exec(www)
+        const mDesc = /error_description="([^"]+)"/i.exec(www)
+        if (!errorCode && mErr) errorCode = mErr[1]
+        if (mDesc) errorDescription = mDesc[1]
+      }
+      const baseMsg = `${res.status} ${res.statusText}`
+      const detail = [errorCode, errorDescription].filter(Boolean).join(': ')
+      const composed = detail ? `${baseMsg} - ${detail}` : baseMsg
+      const err = new Error(`${method} ${url} -> ${composed}`)
+      ;(err as any).status = res.status
+      ;(err as any).code = errorCode
+      ;(err as any).description = errorDescription
+      throw err
     }
     // Handle empty/204 or non-JSON responses gracefully
     if (res.status === 204) return undefined as unknown as T

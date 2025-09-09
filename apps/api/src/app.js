@@ -81,11 +81,17 @@ function requireAuth(req, res, next) {
   // Allow explicit insecure writes in dev only when neither JWT nor static token is configured
   if (!jwtSecret && !staticToken) {
     if (process.env.ALLOW_INSECURE_WRITES === '1') return next()
-    return res.status(401).json({ error: 'unauthorized' })
+    res.setHeader('WWW-Authenticate', 'Bearer realm="api", error="invalid_request", error_description="authentication required"')
+    return res.status(401).json({ error: 'auth_required' })
   }
 
   // Prefer JWT verification when secret is configured
   if (jwtSecret) {
+    // Missing token
+    if (!token) {
+      res.setHeader('WWW-Authenticate', 'Bearer realm="api", error="invalid_request", error_description="missing bearer token"')
+      return res.status(401).json({ error: 'token_missing' })
+    }
     try {
       const payload = jwt.verify(token, jwtSecret)
       // Optional authorization policy: require admin-like claims
@@ -98,18 +104,31 @@ function requireAuth(req, res, next) {
         payload?.user === 'admin' ||
         (Array.isArray(scopes) && scopes.includes('admin'))
       )
-      if (!isAdmin) return res.status(401).json({ error: 'unauthorized' })
+      if (!isAdmin) {
+        res.setHeader('WWW-Authenticate', 'Bearer realm="api", error="insufficient_scope", error_description="admin scope required"')
+        return res.status(403).json({ error: 'insufficient_scope' })
+      }
       return next()
     } catch (err) {
       // If JWT verification fails and a static token is configured, fall back to static match
       if (staticToken && token === staticToken) return next()
-      return res.status(401).json({ error: 'unauthorized' })
+      const isExpired = err && (err.name === 'TokenExpiredError' || /expired/i.test(String(err.message || '')))
+      const hdr = isExpired
+        ? 'Bearer realm="api", error="invalid_token", error_description="token expired"'
+        : 'Bearer realm="api", error="invalid_token", error_description="token invalid"'
+      res.setHeader('WWW-Authenticate', hdr)
+      return res.status(401).json({ error: isExpired ? 'token_expired' : 'token_invalid' })
     }
   }
 
   // Fallback: static token equality
+  if (!token) {
+    res.setHeader('WWW-Authenticate', 'Bearer realm="api", error="invalid_request", error_description="missing bearer token"')
+    return res.status(401).json({ error: 'token_missing' })
+  }
   if (staticToken && token === staticToken) return next()
-  return res.status(401).json({ error: 'unauthorized' })
+  res.setHeader('WWW-Authenticate', 'Bearer realm="api", error="invalid_token", error_description="token invalid"')
+  return res.status(401).json({ error: 'token_invalid' })
 }
 
 app.post('/api/posts', requireAuth, (req, res) => {
