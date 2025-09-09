@@ -24,5 +24,9 @@
 - [ ] CI glyph/docs checks pass
 - [ ] Branch policy check passes (rebased/merged main locally)
 
+## Post-Merge Ritual (GOV-CORE-013)
+- [ ] Acknowledge that the merged branch will be deleted (auto-cleanup workflow runs on merge)
+- [ ] Confirm `README.md` Changelog includes this PR under the current sprint tag (Action posts a reminder comment)
+
 ## Screenshots / Logs
 <!-- Optional: attach evidence for reviewers -->

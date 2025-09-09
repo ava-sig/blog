@@ -99,6 +99,7 @@
         >
           Blog
         </a>
+        <span v-if="appVersion">&nbsp;v{{ appVersion }}</span>
       </div>
     </footer>
   </div>
@@ -108,6 +109,7 @@
 import { useAuth } from '~/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import { onMounted, ref } from 'vue'
+import { useRuntimeConfig } from 'nuxt/app'
 
 const auth = useAuth()
 const route = useRoute()
@@ -119,6 +121,10 @@ const loginError = ref('')
 // Editable site title
 const siteTitle = ref('Glyphic Blog')
 const editingTitle = ref(false)
+
+// App version from runtime config
+const runtime = useRuntimeConfig()
+const appVersion = (runtime.public as any)?.appVersion || ''
 
 // Synchronous init to avoid flicker before first paint
 if (typeof window !== 'undefined') {

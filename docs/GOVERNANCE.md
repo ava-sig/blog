@@ -17,3 +17,8 @@ From tag → tag, freeze glyph names/codenames. Use deprecation notes; don’t r
 
 CODENAME: GOV-CORE-012 — ADRs (tiny)
 If a decision changes intent (not just code), add a 10–15 line ADR under internal/adr/ and reference it in the PR.
+
+CODENAME: GOV-CORE-013 — Post-Merge Ritual
+- After a PR is merged into main, delete the feature branch locally and on origin.
+- Ensure the `README.md` Changelog section contains a line for the change set (or aggregate under the current sprint tag).
+- Tag the release at sprint end (see README Sprint End Ritual). A GitHub Action will assist by auto-deleting merged branches and posting a reminder comment.

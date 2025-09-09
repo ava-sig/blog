@@ -48,8 +48,8 @@ test('JWT without admin claim is rejected (401)', async () => {
   process.env.JWT_SECRET = 'test-secret'
   const token = jwt.sign({ role: 'user' }, process.env.JWT_SECRET)
   const { status, data } = await json('POST', '/api/posts', { title: 'JWT bad', content: '' }, token)
-  assert.equal(status, 401)
-  assert.equal(data.error, 'unauthorized')
+  assert.equal(status, 403)
+  assert.equal(data.error, 'insufficient_scope')
 })
 
 test('When JWT verify fails but static token matches, allow via fallback', async () => {
@@ -136,22 +136,22 @@ test('GET /api/posts returns array', async () => {
 
 // Unauthorized write
 
-test('POST /api/posts without token -> 401', async () => {
+test('POST /api/posts without token -> 401 token_missing', async () => {
   const { status, data } = await json('POST', '/api/posts', { title: 't', content: 'c' })
   assert.equal(status, 401)
-  assert.equal(data.error, 'unauthorized')
+  assert.equal(data.error, 'token_missing')
 })
 
 // Upload auth
 
-test('POST /api/upload without token -> 401', async () => {
+test('POST /api/upload without token -> 401 token_missing', async () => {
   const form = new FormData()
   const blob = new Blob([Buffer.from('89504e470d0a1a0a', 'hex')], { type: 'image/png' })
   form.set('image', blob, 'tiny.png')
   const res = await fetch(baseURL + '/api/upload', { method: 'POST', body: form })
   assert.equal(res.status, 401)
   const body = await res.json()
-  assert.equal(body.error, 'unauthorized')
+  assert.equal(body.error, 'token_missing')
 })
 
 test('POST /api/upload with token -> 200 and url', async () => {
