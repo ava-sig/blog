@@ -246,6 +246,12 @@ Notes:
 
 ## Changelog
 
+### v0.2.5 — 2025-09-09
+- API: RFC 6750-compliant auth errors (WWW-Authenticate) and specific codes (token_missing, token_invalid, token_expired, insufficient_scope, auth_required).
+- Web: surface API auth errors via toast with friendly messages; footer shows app version via NUXT_PUBLIC_APP_VERSION.
+- Docs: Quick Deploy guide for Docker Hub namespace `ava2016`.
+- Governance: GOV-CORE-013 Post-Merge Ritual formalized; workflow auto-deletes merged branches and posts changelog reminder.
+
 ### v0.2.3 — 2025-08-31
 - CI/Vitest: remove unsupported CLI flags; scope via `apps/web/vitest.config.ts` `test.include`.
 - CI: run `web-build` inside `apps/web`; add diagnostics (commit SHA, scripts, Vitest version).
