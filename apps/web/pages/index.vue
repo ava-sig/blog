@@ -202,7 +202,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, nextTick } from 'vue'
-import { useHead, useRuntimeConfig } from 'nuxt/app'
+import { useHead, useRuntimeConfig, useAsyncData } from 'nuxt/app'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '~/stores/auth'
 import { useContent } from '~/composables/useContent'
@@ -279,28 +279,17 @@ function formatTs(input: string) {
   try {
     const d = new Date(input)
     if (isNaN(d.getTime())) return input
-    return new Intl.DateTimeFormat(undefined, {
+    // Deterministic across SSR/CSR: fixed locale and UTC timezone
+    return new Intl.DateTimeFormat('en-US', {
       year: 'numeric', month: 'short', day: '2-digit',
-      hour: '2-digit', minute: '2-digit'
+      hour: '2-digit', minute: '2-digit', timeZone: 'UTC'
     }).format(d)
   } catch {
     return input
   }
 }
 
-async function fetchPosts() {
-  loading.value = true
-  error.value = ''
-  try {
-    posts.value = await api.get('/posts')
-  } catch (e: any) {
-    error.value = e?.message || 'Failed to load posts'
-  } finally {
-    loading.value = false
-  }
-  await nextTick()
-  setupReveal()
-}
+// Removed unused fetchPosts; SSR path now provides initial data via useAsyncData
 
 function showToast(msg: string, type: 'success' | 'error' = 'success') {
   toastMsg.value = msg
@@ -438,8 +427,20 @@ const { onComposerKeydown } = useComposerKeys({
   createNew: create,
 })
 
-onMounted(() => {
-  fetchPosts()
+// SSR: fetch initial posts on server to avoid hydration mismatch
+const apiBaseForSSR = (runtime.public as any)?.apiBase || ''
+try {
+  const { data: ssrPosts, error: ssrErr } = await useAsyncData('posts', () =>
+    $fetch(`${String(apiBaseForSSR).replace(/\/$/, '')}/api/posts`)
+  )
+  if (!ssrErr?.value && Array.isArray(ssrPosts?.value)) {
+    posts.value = ssrPosts.value as any[]
+  }
+} catch {}
+
+onMounted(async () => {
+  await nextTick()
+  setupReveal()
 })
 </script>
 
