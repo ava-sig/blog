@@ -40,6 +40,14 @@
               aria-hidden="true"
             />
           </template>
+          <!-- Theme toggle: visible only in edit mode -->
+          <button
+            v-if="auth.editing"
+            class="theme-indicator"
+            :aria-label="`Switch to ${theme.theme === 'dark' ? 'light' : 'dark'} theme`"
+            :title="`Theme: ${theme.theme}`"
+            @click="theme.toggleTheme()"
+          />
           <button
             class="edit-indicator"
             :class="{ on: auth.editing }"
@@ -116,8 +124,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { onMounted, ref } from 'vue'
 import { useRuntimeConfig } from 'nuxt/app'
 import { useErrors } from '~/composables/useErrors'
+import { useTheme } from '~/stores/theme'
 
 const auth = useAuth()
+const theme = useTheme()
 const route = useRoute()
 const router = useRouter()
 const showLogin = ref(false)
@@ -322,4 +332,44 @@ body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI
   border-color: #1d4ed8;
   color: #fff;
 }
+/* Theme CSS variables: default light, override in .dark */
+:root {
+  /* base color channels as r g b (match Tailwind's rgb(var(--...)) usage) */
+  --base-bg: 250 250 250;        /* light bg */
+  --base-panel: 255 255 255;     /* light panel */
+  --base-border: 229 231 235;    /* zinc-200 */
+  --base-text: 17 24 39;         /* gray-900 */
+  --base-sub: 107 114 128;       /* gray-500 */
+}
+
+.dark:root {
+  --base-bg: 11 11 15;
+  --base-panel: 15 15 20;
+  --base-border: 35 35 41;
+  --base-text: 229 231 235;
+  --base-sub: 161 161 170;
+}
+
+/* Theme indicator, visually minimal */
+.theme-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  margin-right: 10px;
+  opacity: 0.95;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+  /* Light mode hint */
+  background: radial-gradient(circle at 65% 35%, #fde68a 15%, #f59e0b 45%, #2563eb 85%);
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.35);
+}
+.dark .theme-indicator {
+  /* Dark mode hint */
+  background: radial-gradient(circle at 65% 35%, #93c5fd 15%, #2563eb 45%, #0ea5e9 85%);
+  box-shadow: 0 0 8px 2px rgba(59,130,246,0.35);
+}
+.theme-indicator:hover { opacity: 1; transform: translateY(-1px); }
+.theme-indicator:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 </style>
