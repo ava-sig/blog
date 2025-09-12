@@ -40,13 +40,23 @@
               aria-hidden="true"
             />
           </template>
-          <button
-            class="edit-indicator"
-            :class="{ on: auth.editing }"
-            aria-label="Edit mode status"
-            title="Edit mode"
-            @click="onIndicatorClick"
-          />
+          <div class="flex items-center gap-[10px]">
+            <!-- Theme toggle: visible only in edit mode -->
+            <button
+              v-if="auth.editing"
+              class="theme-indicator"
+              :aria-label="`Switch to ${theme.theme === 'dark' ? 'light' : 'dark'} theme`"
+              :title="`Theme: ${theme.theme}`"
+              @click="onThemeToggle()"
+            />
+            <button
+              class="edit-indicator"
+              :class="{ on: auth.editing }"
+              aria-label="Edit mode status"
+              title="Edit mode"
+              @click="onIndicatorClick"
+            />
+          </div>
         </ClientOnly>
       </div>
     </header>
@@ -66,6 +76,7 @@
           v-model="tokenInput"
           rows="4"
           placeholder="eyJhbGciOi..."
+          class="input"
           style="width:100%;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
         />
         <div
@@ -116,8 +127,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { onMounted, ref } from 'vue'
 import { useRuntimeConfig } from 'nuxt/app'
 import { useErrors } from '~/composables/useErrors'
+import { useTheme } from '~/stores/theme'
 
 const auth = useAuth()
+const theme = useTheme()
 const route = useRoute()
 const router = useRouter()
 const showLogin = ref(false)
@@ -128,6 +141,28 @@ const { formatApiError } = useErrors()
 // Editable site title
 const siteTitle = ref('Glyphic Blog')
 const editingTitle = ref(false)
+
+// Toggle theme and persist default when admin
+async function onThemeToggle() {
+  // Toggle locally
+  theme.toggleTheme()
+  // If admin, persist as default theme for guests
+  try {
+    if (auth.editing) {
+      const cfg = useRuntimeConfig()
+      const base = (cfg.public as any)?.apiBase || ''
+      const url = `${String(base).replace(/\/$/, '')}/api/settings`
+      await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ defaultTheme: theme.theme }),
+      })
+    }
+  } catch {}
+}
 
 // App version from runtime config
 const runtime = useRuntimeConfig()
@@ -175,6 +210,39 @@ onMounted(() => {
   if (typeof q === 'string' && q.length > 0) {
     router.replace({ path: route.path, query: {} })
   }
+  // Load default theme for guests if no local preference
+  ;(async () => {
+    try {
+      const hasLocalTheme = !!localStorage.getItem('ui.theme')
+      if (!hasLocalTheme) {
+        const cfg = useRuntimeConfig()
+        const base = (cfg.public as any)?.apiBase || ''
+        const url = `${String(base).replace(/\/$/, '')}/api/settings`
+        const r = await fetch(url)
+        if (r.ok) {
+          const data = await r.json()
+          const dt = data?.defaultTheme
+          if (dt === 'light' || dt === 'dark') theme.setTheme(dt)
+        }
+      }
+    } catch {}
+  })()
+  // Load blogName from settings if there is no local override
+  ;(async () => {
+    try {
+      const hasLocal = !!localStorage.getItem('site.title')
+      if (hasLocal) return
+      const cfg = useRuntimeConfig()
+      const base = (cfg.public as any)?.apiBase || ''
+      const url = `${String(base).replace(/\/$/, '')}/api/settings`
+      const r = await fetch(url)
+      if (r.ok) {
+        const data = await r.json()
+        const n = (data && typeof data.blogName === 'string' && data.blogName.trim()) || ''
+        if (n) siteTitle.value = n
+      }
+    } catch {}
+  })()
 })
 
 function closeLogin() {
@@ -192,6 +260,22 @@ function saveTitle() {
   const t = siteTitle.value?.trim() || 'Glyphic Blog'
   siteTitle.value = t
   try { localStorage.setItem('site.title', t) } catch {}
+  // If admin, persist blogName to settings
+  if (auth.editing) {
+    try {
+      const cfg = useRuntimeConfig()
+      const base = (cfg.public as any)?.apiBase || ''
+      const url = `${String(base).replace(/\/$/, '')}/api/settings`
+      fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ blogName: t })
+      }).catch(() => {})
+    } catch {}
+  }
 }
 
 function base64UrlDecode(str: string): string {
@@ -302,24 +386,53 @@ body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI
 }
 .modal {
   width: min(560px, 92vw);
-  background: #0f0f14;
-  border: 1px solid #232329;
+  background: rgb(var(--base-panel));
+  border: 1px solid rgb(var(--base-border));
   border-radius: 8px;
   padding: 14px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  color: rgb(var(--base-text));
 }
-.btn {
-  appearance: none;
-  border: 1px solid #232329;
-  background: #15151b;
-  padding: 6px 10px;
-  border-radius: 6px;
+/* Use theme-aware button colors consistent with global .btn utilities */
+.btn { appearance: none; border: 1px solid rgb(var(--base-border)); background: rgb(var(--base-panel)); padding: 6px 10px; border-radius: 6px; cursor: pointer; color: rgb(var(--base-text)); }
+.btn.primary { background: #2563eb; border-color: #1d4ed8; color: #fff; }
+/* Theme CSS variables: default light, override in .dark */
+:root {
+  /* base color channels as r g b (match Tailwind's rgb(var(--...)) usage) */
+  --base-bg: 250 250 250;        /* light bg */
+  --base-panel: 255 255 255;     /* light panel */
+  --base-border: 229 231 235;    /* zinc-200 */
+  --base-text: 17 24 39;         /* gray-900 */
+  --base-sub: 107 114 128;       /* gray-500 */
+}
+
+.dark:root {
+  --base-bg: 11 11 15;
+  --base-panel: 15 15 20;
+  --base-border: 35 35 41;
+  --base-text: 229 231 235;
+  --base-sub: 161 161 170;
+}
+
+/* Theme indicator, visually minimal */
+.theme-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
   cursor: pointer;
-  color: #e5e7eb;
+  opacity: 0.95;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+  /* Light mode hint */
+  background: radial-gradient(circle at 65% 35%, #fde68a 15%, #f59e0b 45%, #2563eb 85%);
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.35);
 }
-.btn.primary {
-  background: #2563eb;
-  border-color: #1d4ed8;
-  color: #fff;
+.dark .theme-indicator {
+  /* Dark mode hint */
+  background: radial-gradient(circle at 65% 35%, #93c5fd 15%, #2563eb 45%, #0ea5e9 85%);
+  box-shadow: 0 0 8px 2px rgba(59,130,246,0.35);
 }
+.theme-indicator:hover { opacity: 1; transform: translateY(-1px); }
+.theme-indicator:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 </style>

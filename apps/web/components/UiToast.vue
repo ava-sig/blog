@@ -25,9 +25,18 @@ const props = defineProps<{
 }>()
 
 const typeClass = computed(() => {
-  return props.type === 'error'
-    ? 'bg-rose-900/15 border-rose-700/40 text-rose-200'
-    : 'bg-emerald-900/15 border-emerald-700/40 text-emerald-200'
+  if (props.type === 'error') {
+    // Light theme (default): readable dark text on light background
+    // Dark theme: keep subtle dark-background styling
+    return [
+      'bg-rose-50 border-rose-200 text-rose-700',
+      'dark:bg-rose-900/15 dark:border-rose-700/40 dark:text-rose-200',
+    ].join(' ')
+  }
+  return [
+    'bg-emerald-50 border-emerald-200 text-emerald-700',
+    'dark:bg-emerald-900/15 dark:border-emerald-700/40 dark:text-emerald-200',
+  ].join(' ')
 })
 </script>
 

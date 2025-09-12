@@ -14,11 +14,13 @@ export default {
     extend: {
       colors: {
         base: {
-          bg: '#0b0b0f',
-          panel: '#0f0f14',
-          border: '#232329',
-          text: '#e5e7eb',
-          sub: '#a1a1aa'
+          // Use CSS variables so we can switch themes by toggling the 'dark' class
+          // Supports alpha via Tailwind's <alpha-value> token
+          bg: 'rgb(var(--base-bg) / <alpha-value>)',
+          panel: 'rgb(var(--base-panel) / <alpha-value>)',
+          border: 'rgb(var(--base-border) / <alpha-value>)',
+          text: 'rgb(var(--base-text) / <alpha-value>)',
+          sub: 'rgb(var(--base-sub) / <alpha-value>)'
         }
       },
       transitionDuration: {
