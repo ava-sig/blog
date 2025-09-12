@@ -436,12 +436,23 @@ const { onComposerKeydown } = useComposerKeys({
   createNew: create,
 })
 
+// Helper: robust API base (fallback to localhost:3388 in browser if not configured)
+function apiBaseSafe() {
+  const fromRuntime = (runtime.public as any)?.apiBase || ''
+  if (fromRuntime) return String(fromRuntime).replace(/\/$/, '')
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:3388`
+  }
+  return ''
+}
+
 // SSR: fetch initial posts on server to avoid hydration mismatch
-const apiBaseForSSR = (runtime.public as any)?.apiBase || ''
+const apiBaseForSSR = apiBaseSafe()
 try {
-  const { data: ssrPosts, error: ssrErr } = await useAsyncData('posts', () =>
-    $fetch(`${String(apiBaseForSSR).replace(/\/$/, '')}/api/posts`)
-  )
+  const { data: ssrPosts, error: ssrErr } = await useAsyncData('posts', () => {
+    const url = `${apiBaseForSSR}/api/posts`
+    return $fetch(url)
+  })
   if (!ssrErr?.value && Array.isArray(ssrPosts?.value)) {
     posts.value = ssrPosts.value as any[]
   }
@@ -450,6 +461,21 @@ try {
 onMounted(async () => {
   await nextTick()
   setupReveal()
+  // Client-side fallback: if SSR failed to populate posts, fetch now
+  try {
+    if (Array.isArray(posts.value) && posts.value.length === 0) {
+      const url = `${apiBaseSafe()}/api/posts`
+      const list = await $fetch(url)
+      if (Array.isArray(list)) {
+        posts.value = list as any[]
+        await nextTick()
+        setupReveal()
+      }
+      if (process.dev) console.debug('[posts] fetched on client', { count: Array.isArray(list) ? list.length : 'n/a', url })
+    }
+  } catch (e) {
+    if (process.dev) console.error('[posts] client fetch failed', e)
+  }
 })
 </script>
 
