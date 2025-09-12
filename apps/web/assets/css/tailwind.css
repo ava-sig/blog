@@ -39,6 +39,12 @@
       inset 0 1px 0 rgba(255,255,255,0.06), /* top bevel */
       inset 0 -1px 0 rgba(0,0,0,0.35);      /* bottom bevel */
   }
+  /* In dark theme, keep a stronger inner bottom shadow for depth */
+  .dark .card-art::after {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -2px 0 rgba(0,0,0,0.45);
+  }
 
   /* Artistic card bevel with gradient ring and subtle corner accents */
   .card-art { @apply relative overflow-hidden rounded-2xl; }
@@ -77,9 +83,9 @@
       radial-gradient(110px 54px at calc(0% + var(--px, 0px)) calc(100% + var(--py, 0px)), rgba(99,102,241,0.10), rgba(99,102,241,0) 60%),
       linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0) 28%),
       linear-gradient(180deg, rgba(0,0,0,0) 70%, rgba(0,0,0,0.25));
+    /* In light theme, avoid heavy inner bottom shadow to prevent double-line with the panel border */
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.06),
-      inset 0 -2px 0 rgba(0,0,0,0.45);
+      inset 0 1px 0 rgba(255,255,255,0.06);
     pointer-events: none;
     z-index: 0;
     opacity: 0.2; /* reduce background graphics intensity to ~20% */
