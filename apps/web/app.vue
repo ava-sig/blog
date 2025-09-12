@@ -1,42 +1,3 @@
-async function onThemeToggle() {
-  // Toggle locally
-  theme.toggleTheme()
-  // If admin, persist as default theme for guests
-  try {
-    if (auth.editing) {
-      const cfg = useRuntimeConfig()
-      const base = (cfg.public as any)?.apiBase || ''
-      const url = `${String(base).replace(/\/$/, '')}/api/settings`
-      await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        body: JSON.stringify({ defaultTheme: theme.theme }),
-      })
-    }
-  } catch {}
-}
-
-// Load default theme for guests from API if no local preference is set
-onMounted(async () => {
-  if (typeof window === 'undefined') return
-  try {
-    const hasLocal = !!localStorage.getItem('ui.theme')
-    if (!hasLocal) {
-      const cfg = useRuntimeConfig()
-      const base = (cfg.public as any)?.apiBase || ''
-      const url = `${String(base).replace(/\/$/, '')}/api/settings`
-      const r = await fetch(url)
-      if (r.ok) {
-        const data = await r.json()
-        const dt = data?.defaultTheme
-        if (dt === 'light' || dt === 'dark') theme.setTheme(dt)
-      }
-    }
-  } catch {}
-})
 <template>
   <div>
     <header class="border-b border-base-border bg-base-panel">
@@ -181,6 +142,28 @@ const { formatApiError } = useErrors()
 const siteTitle = ref('Glyphic Blog')
 const editingTitle = ref(false)
 
+// Toggle theme and persist default when admin
+async function onThemeToggle() {
+  // Toggle locally
+  theme.toggleTheme()
+  // If admin, persist as default theme for guests
+  try {
+    if (auth.editing) {
+      const cfg = useRuntimeConfig()
+      const base = (cfg.public as any)?.apiBase || ''
+      const url = `${String(base).replace(/\/$/, '')}/api/settings`
+      await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ defaultTheme: theme.theme }),
+      })
+    }
+  } catch {}
+}
+
 // App version from runtime config
 const runtime = useRuntimeConfig()
 const appVersion = (runtime.public as any)?.appVersion || ''
@@ -227,6 +210,39 @@ onMounted(() => {
   if (typeof q === 'string' && q.length > 0) {
     router.replace({ path: route.path, query: {} })
   }
+  // Load default theme for guests if no local preference
+  ;(async () => {
+    try {
+      const hasLocalTheme = !!localStorage.getItem('ui.theme')
+      if (!hasLocalTheme) {
+        const cfg = useRuntimeConfig()
+        const base = (cfg.public as any)?.apiBase || ''
+        const url = `${String(base).replace(/\/$/, '')}/api/settings`
+        const r = await fetch(url)
+        if (r.ok) {
+          const data = await r.json()
+          const dt = data?.defaultTheme
+          if (dt === 'light' || dt === 'dark') theme.setTheme(dt)
+        }
+      }
+    } catch {}
+  })()
+  // Load blogName from settings if there is no local override
+  ;(async () => {
+    try {
+      const hasLocal = !!localStorage.getItem('site.title')
+      if (hasLocal) return
+      const cfg = useRuntimeConfig()
+      const base = (cfg.public as any)?.apiBase || ''
+      const url = `${String(base).replace(/\/$/, '')}/api/settings`
+      const r = await fetch(url)
+      if (r.ok) {
+        const data = await r.json()
+        const n = (data && typeof data.blogName === 'string' && data.blogName.trim()) || ''
+        if (n) siteTitle.value = n
+      }
+    } catch {}
+  })()
 })
 
 function closeLogin() {
@@ -244,6 +260,22 @@ function saveTitle() {
   const t = siteTitle.value?.trim() || 'Glyphic Blog'
   siteTitle.value = t
   try { localStorage.setItem('site.title', t) } catch {}
+  // If admin, persist blogName to settings
+  if (auth.editing) {
+    try {
+      const cfg = useRuntimeConfig()
+      const base = (cfg.public as any)?.apiBase || ''
+      const url = `${String(base).replace(/\/$/, '')}/api/settings`
+      fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ blogName: t })
+      }).catch(() => {})
+    } catch {}
+  }
 }
 
 function base64UrlDecode(str: string): string {

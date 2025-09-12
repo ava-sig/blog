@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useRuntimeConfig } from 'nuxt/app'
 
 export type Theme = 'light' | 'dark'
 
@@ -30,11 +31,38 @@ export const useTheme = defineStore('theme', {
     },
     load() {
       if (typeof window === 'undefined') return
-      try {
-        const t = (localStorage.getItem('ui.theme') as Theme) || 'light'
-        this.theme = (t === 'dark' ? 'dark' : 'light')
-      } catch { this.theme = 'light' }
-      this.applyThemeClass()
+      (async () => {
+        // Local preference takes precedence
+        try {
+          const t = (localStorage.getItem('ui.theme') as Theme) || ''
+          if (t === 'dark' || t === 'light') {
+            this.theme = t
+            this.applyThemeClass()
+            return
+          }
+        } catch {}
+
+        // Fallback to server default if available
+        try {
+          const cfg = useRuntimeConfig()
+          const base = (cfg.public as any)?.apiBase || ''
+          const url = `${String(base).replace(/\/$/, '')}/api/settings`
+          const r = await fetch(url)
+          if (r.ok) {
+            const data = await r.json()
+            const dt = data?.defaultTheme
+            if (dt === 'dark' || dt === 'light') {
+              this.theme = dt
+              this.applyThemeClass()
+              return
+            }
+          }
+        } catch {}
+
+        // Final fallback
+        this.theme = 'light'
+        this.applyThemeClass()
+      })()
     },
   },
 })
