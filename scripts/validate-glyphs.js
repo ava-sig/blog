@@ -10,10 +10,20 @@ const path = require('path');
 
 const localRoot = process.cwd();
 const projectName = path.basename(localRoot);
-const centralRoot = path.join(localRoot, '..', 'governance', projectName);
+
+// Support both layouts:
+// - Local dev: ../governance/{project}
+// - CI (checked out into workspace): ./governance/{project}
+const centralCandidates = [
+  path.join(localRoot, '..', 'governance', projectName),
+  path.join(localRoot, 'governance', projectName),
+];
+const foundCentral = centralCandidates.find(p => {
+  try { return fs.existsSync(p) && fs.statSync(p).isDirectory(); } catch { return false; }
+});
 
 // Prefer centralized governance path if it exists; fallback to local repo root.
-const repoRoot = (fs.existsSync(centralRoot) && fs.statSync(centralRoot).isDirectory()) ? centralRoot : localRoot;
+const repoRoot = foundCentral || localRoot;
 const meshPath = path.join(repoRoot, 'glyphs', 'MSH-000.md');
 
 function fail(msg){
