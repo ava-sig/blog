@@ -456,6 +456,14 @@ onMounted(async () => {
 <style scoped>
 .prose-content {
   white-space: pre-wrap; /* preserve newlines and blank lines */
+  /* Ensure very long words/URLs wrap within the card */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+/* Wrap long titles as well */
+.card h4 {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .card {
   position: relative;
