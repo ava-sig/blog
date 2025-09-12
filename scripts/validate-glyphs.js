@@ -8,7 +8,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const repoRoot = process.cwd();
+const localRoot = process.cwd();
+const projectName = path.basename(localRoot);
+const centralRoot = path.join(localRoot, '..', 'governance', projectName);
+
+// Prefer centralized governance path if it exists; fallback to local repo root.
+const repoRoot = (fs.existsSync(centralRoot) && fs.statSync(centralRoot).isDirectory()) ? centralRoot : localRoot;
 const meshPath = path.join(repoRoot, 'glyphs', 'MSH-000.md');
 
 function fail(msg){
