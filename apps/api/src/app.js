@@ -23,21 +23,82 @@ app.use('/uploads', express.static(uploadsDir))
 // Simple file-backed storage
 const dataDir = path.join(__dirname, '..', 'data')
 const postsFile = path.join(dataDir, 'posts.json')
+const postsSeedFile = path.join(dataDir, 'posts.seed.json')
+const settingsFile = path.join(dataDir, 'settings.json')
 
 function ensureStore() {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
-  if (!fs.existsSync(postsFile)) fs.writeFileSync(postsFile, '[]')
+  // If posts.json does not exist, try to seed from posts.seed.json if present
+  if (!fs.existsSync(postsFile)) {
+    try {
+      if (fs.existsSync(postsSeedFile)) {
+        fs.copyFileSync(postsSeedFile, postsFile)
+      } else {
+        // As a fallback, if a version-controlled posts.json exists in the image context, use it
+        // (useful when running outside docker volume mounts)
+        const bundled = path.join(__dirname, '..', 'data', 'posts.json')
+        if (fs.existsSync(bundled)) {
+          fs.copyFileSync(bundled, postsFile)
+        } else {
+          fs.writeFileSync(postsFile, '[]')
+        }
+      }
+    } catch (e) {
+      // Final fallback: ensure file exists
+      try { fs.writeFileSync(postsFile, '[]') } catch (e2) { /* ignore */ }
+    }
+  }
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
+  // Ensure settings file with defaults exists
+  if (!fs.existsSync(settingsFile)) {
+    try { fs.writeFileSync(settingsFile, JSON.stringify({ defaultTheme: 'light' }, null, 2)) } catch (e) { /* ignore */ }
+  }
 }
 
 function readPosts() {
   ensureStore()
-  try { return JSON.parse(fs.readFileSync(postsFile, 'utf8')) } catch { return [] }
+  try {
+    const text = fs.readFileSync(postsFile, 'utf8')
+    const data = JSON.parse(text)
+    const seedOnEmpty = process.env.SEED_ON_EMPTY === '1'
+    if (seedOnEmpty && Array.isArray(data) && data.length === 0 && fs.existsSync(postsSeedFile)) {
+      try {
+        const seed = JSON.parse(fs.readFileSync(postsSeedFile, 'utf8'))
+        writePosts(seed)
+        return seed
+      } catch (e) {
+        // ignore seed parse errors, fall through to return current data
+      }
+    }
+    return data
+  } catch {
+    return []
+  }
 }
 
 function writePosts(posts) {
   ensureStore()
   fs.writeFileSync(postsFile, JSON.stringify(posts, null, 2))
+}
+
+function readSettings() {
+  ensureStore()
+  try {
+    const raw = fs.readFileSync(settingsFile, 'utf8')
+    const data = JSON.parse(raw)
+    const dt = data && (data.defaultTheme === 'dark' ? 'dark' : 'light')
+    return { defaultTheme: dt }
+  } catch {
+    return { defaultTheme: 'light' }
+  }
+}
+
+function writeSettings(next) {
+  ensureStore()
+  const data = readSettings()
+  const merged = { ...data, ...next, defaultTheme: next?.defaultTheme === 'dark' ? 'dark' : 'light' }
+  fs.writeFileSync(settingsFile, JSON.stringify(merged, null, 2))
+  return merged
 }
 
 // Simple slugify mirroring frontend behavior: prefer lowercase, dashes, trim
@@ -68,6 +129,21 @@ app.get('/api/posts/:id', (req, res) => {
     return res.status(404).json({ error: 'Not found' })
   }
   res.json(p)
+})
+
+// Settings (theme default for guests)
+app.get('/api/settings', (_req, res) => {
+  res.json(readSettings())
+})
+
+app.put('/api/settings', requireAuth, (req, res) => {
+  try {
+    const { defaultTheme } = req.body || {}
+    const saved = writeSettings({ defaultTheme })
+    res.json(saved)
+  } catch (e) {
+    res.status(400).json({ error: 'invalid_settings' })
+  }
 })
 
 // Simple Bearer token auth for write routes

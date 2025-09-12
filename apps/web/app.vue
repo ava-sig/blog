@@ -1,3 +1,42 @@
+async function onThemeToggle() {
+  // Toggle locally
+  theme.toggleTheme()
+  // If admin, persist as default theme for guests
+  try {
+    if (auth.editing) {
+      const cfg = useRuntimeConfig()
+      const base = (cfg.public as any)?.apiBase || ''
+      const url = `${String(base).replace(/\/$/, '')}/api/settings`
+      await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ defaultTheme: theme.theme }),
+      })
+    }
+  } catch {}
+}
+
+// Load default theme for guests from API if no local preference is set
+onMounted(async () => {
+  if (typeof window === 'undefined') return
+  try {
+    const hasLocal = !!localStorage.getItem('ui.theme')
+    if (!hasLocal) {
+      const cfg = useRuntimeConfig()
+      const base = (cfg.public as any)?.apiBase || ''
+      const url = `${String(base).replace(/\/$/, '')}/api/settings`
+      const r = await fetch(url)
+      if (r.ok) {
+        const data = await r.json()
+        const dt = data?.defaultTheme
+        if (dt === 'light' || dt === 'dark') theme.setTheme(dt)
+      }
+    }
+  } catch {}
+})
 <template>
   <div>
     <header class="border-b border-base-border bg-base-panel">
@@ -47,7 +86,7 @@
               class="theme-indicator"
               :aria-label="`Switch to ${theme.theme === 'dark' ? 'light' : 'dark'} theme`"
               :title="`Theme: ${theme.theme}`"
-              @click="theme.toggleTheme()"
+              @click="onThemeToggle()"
             />
             <button
               class="edit-indicator"
@@ -76,6 +115,7 @@
           v-model="tokenInput"
           rows="4"
           placeholder="eyJhbGciOi..."
+          class="input"
           style="width:100%;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
         />
         <div
@@ -314,26 +354,16 @@ body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI
 }
 .modal {
   width: min(560px, 92vw);
-  background: #0f0f14;
-  border: 1px solid #232329;
+  background: rgb(var(--base-panel));
+  border: 1px solid rgb(var(--base-border));
   border-radius: 8px;
   padding: 14px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  color: rgb(var(--base-text));
 }
-.btn {
-  appearance: none;
-  border: 1px solid #232329;
-  background: #15151b;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #e5e7eb;
-}
-.btn.primary {
-  background: #2563eb;
-  border-color: #1d4ed8;
-  color: #fff;
-}
+/* Use theme-aware button colors consistent with global .btn utilities */
+.btn { appearance: none; border: 1px solid rgb(var(--base-border)); background: rgb(var(--base-panel)); padding: 6px 10px; border-radius: 6px; cursor: pointer; color: rgb(var(--base-text)); }
+.btn.primary { background: #2563eb; border-color: #1d4ed8; color: #fff; }
 /* Theme CSS variables: default light, override in .dark */
 :root {
   /* base color channels as r g b (match Tailwind's rgb(var(--...)) usage) */
