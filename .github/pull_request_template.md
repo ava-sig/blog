@@ -12,6 +12,7 @@
 - Up-to-date with main before PR: <!-- yes/no; rebase/merge main locally -->
 - Hidden layer protected (GOV-SEC-001): <!-- yes/no -->
 - Mesh index updated if needed (MSH-000): <!-- yes/no -->
+- Centralized governance fetched in CI: <!-- yes/no; CI checks out ava-sig/governance into ./governance using GOVERNANCE_REPO_TOKEN -->
 
 ## Runtime Ports
 - API: 3388
@@ -23,6 +24,7 @@
 - [ ] `npm run guard:internal` passes
 - [ ] CI glyph/docs checks pass
 - [ ] Branch policy check passes (rebased/merged main locally)
+- [ ] CI checks out centralized governance into `./governance` (ava-sig/governance via `GOVERNANCE_REPO_TOKEN`)
 
 ## Post-Merge Ritual (GOV-CORE-013)
 - [ ] Acknowledge that the merged branch will be deleted (auto-cleanup workflow runs on merge)

@@ -26,6 +26,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout central governance
+        uses: actions/checkout@v4
+        with:
+          repository: ava-sig/governance
+          ref: main
+          path: governance
+          token: ${{ secrets.GOVERNANCE_REPO_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -46,6 +53,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout central governance
+        uses: actions/checkout@v4
+        with:
+          repository: ava-sig/governance
+          ref: main
+          path: governance
+          token: ${{ secrets.GOVERNANCE_REPO_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
