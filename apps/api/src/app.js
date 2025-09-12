@@ -51,7 +51,7 @@ function ensureStore() {
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
   // Ensure settings file with defaults exists
   if (!fs.existsSync(settingsFile)) {
-    try { fs.writeFileSync(settingsFile, JSON.stringify({ defaultTheme: 'light' }, null, 2)) } catch (e) { /* ignore */ }
+    try { fs.writeFileSync(settingsFile, JSON.stringify({ defaultTheme: 'light', blogName: 'Glyphic Blog' }, null, 2)) } catch (e) { /* ignore */ }
   }
 }
 
@@ -87,16 +87,22 @@ function readSettings() {
     const raw = fs.readFileSync(settingsFile, 'utf8')
     const data = JSON.parse(raw)
     const dt = data && (data.defaultTheme === 'dark' ? 'dark' : 'light')
-    return { defaultTheme: dt }
+    const bn = (data && typeof data.blogName === 'string' && data.blogName.trim()) || 'Glyphic Blog'
+    return { defaultTheme: dt, blogName: bn }
   } catch {
-    return { defaultTheme: 'light' }
+    return { defaultTheme: 'light', blogName: 'Glyphic Blog' }
   }
 }
 
 function writeSettings(next) {
   ensureStore()
   const data = readSettings()
-  const merged = { ...data, ...next, defaultTheme: next?.defaultTheme === 'dark' ? 'dark' : 'light' }
+  const merged = {
+    ...data,
+    ...next,
+    defaultTheme: next && next.defaultTheme === 'dark' ? 'dark' : (next && next.defaultTheme === 'light' ? 'light' : data.defaultTheme),
+    blogName: (next && typeof next.blogName === 'string') ? next.blogName.trim() || data.blogName : data.blogName,
+  }
   fs.writeFileSync(settingsFile, JSON.stringify(merged, null, 2))
   return merged
 }
@@ -138,8 +144,8 @@ app.get('/api/settings', (_req, res) => {
 
 app.put('/api/settings', requireAuth, (req, res) => {
   try {
-    const { defaultTheme } = req.body || {}
-    const saved = writeSettings({ defaultTheme })
+    const { defaultTheme, blogName } = req.body || {}
+    const saved = writeSettings({ defaultTheme, blogName })
     res.json(saved)
   } catch (e) {
     res.status(400).json({ error: 'invalid_settings' })
