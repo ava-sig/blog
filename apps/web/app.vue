@@ -40,21 +40,23 @@
               aria-hidden="true"
             />
           </template>
-          <!-- Theme toggle: visible only in edit mode -->
-          <button
-            v-if="auth.editing"
-            class="theme-indicator"
-            :aria-label="`Switch to ${theme.theme === 'dark' ? 'light' : 'dark'} theme`"
-            :title="`Theme: ${theme.theme}`"
-            @click="theme.toggleTheme()"
-          />
-          <button
-            class="edit-indicator"
-            :class="{ on: auth.editing }"
-            aria-label="Edit mode status"
-            title="Edit mode"
-            @click="onIndicatorClick"
-          />
+          <div class="flex items-center gap-[10px]">
+            <!-- Theme toggle: visible only in edit mode -->
+            <button
+              v-if="auth.editing"
+              class="theme-indicator"
+              :aria-label="`Switch to ${theme.theme === 'dark' ? 'light' : 'dark'} theme`"
+              :title="`Theme: ${theme.theme}`"
+              @click="theme.toggleTheme()"
+            />
+            <button
+              class="edit-indicator"
+              :class="{ on: auth.editing }"
+              aria-label="Edit mode status"
+              title="Edit mode"
+              @click="onIndicatorClick"
+            />
+          </div>
         </ClientOnly>
       </div>
     </header>
@@ -358,7 +360,6 @@ body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  margin-right: 10px;
   opacity: 0.95;
   transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
   /* Light mode hint */

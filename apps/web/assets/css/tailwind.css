@@ -11,13 +11,13 @@
 @layer components {
   .container-page { @apply max-w-3xl mx-auto px-4 sm:px-6; }
   .panel { @apply bg-base-panel border border-base-border rounded-2xl shadow-subtle; }
-  .panel-muted { @apply bg-[#0e0e13] border border-base-border/70 rounded-2xl shadow-subtle; }
-  .btn { @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-base-border bg-[#15151b] text-base-text shadow-subtle hover:shadow-lift hover:-translate-y-0.5 transition; }
+  .panel-muted { @apply bg-base-panel border border-base-border/70 rounded-2xl shadow-subtle; }
+  .btn { @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-base-border bg-base-panel text-base-text shadow-subtle hover:shadow-lift hover:-translate-y-0.5 transition; }
   .btn-primary { @apply relative overflow-hidden inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium text-white shadow-subtle transition duration-normal ease-entrance; }
   .btn-primary { background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%); }
   .btn-primary:hover { filter: brightness(1.05); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(49,46,129,0.35); }
   .btn-danger { @apply bg-rose-600/10 text-rose-300 border-rose-700 hover:bg-rose-600/20; }
-  .input { @apply w-full rounded-md bg-[#101014] border border-base-border px-3 py-2 text-base placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50; }
+  .input { @apply w-full rounded-md bg-base-panel border border-base-border px-3 py-2 text-base-text placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50; }
   .muted { @apply text-base-sub; }
   .focus-ring { @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 focus-visible:ring-offset-0; }
   .hover-lift { @apply transition-transform duration-normal ease-entrance hover:-translate-y-0.5 hover:shadow-lift; }
