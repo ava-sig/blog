@@ -5,11 +5,10 @@
       Posts
     </h2>
 
-    <ClientOnly>
-      <section
-        v-if="auth.editing"
-        class="panel-muted p-4 mt-4"
-      >
+    <section
+      v-if="auth.editing"
+      class="panel-muted p-4 mt-4"
+    >
       <h3 class="text-base font-medium mb-3">
         New Post
       </h3>
@@ -53,8 +52,7 @@
           </button>
         </div>
       </form>
-      </section>
-    </ClientOnly>
+    </section>
 
     <section class="mt-6">
       <div
@@ -113,17 +111,15 @@
               class="timeline"
               aria-hidden="true"
             />
-            <ClientOnly>
-              <button
-                v-if="auth.editing"
-                class="card-close focus-ring"
-                aria-label="Delete post"
-                title="Delete"
-                @click.stop="remove(p.id)"
-              >
-                ×
-              </button>
-            </ClientOnly>
+            <button
+              v-if="auth.editing"
+              class="card-close focus-ring"
+              aria-label="Delete post"
+              title="Delete"
+              @click.stop="remove(p.id)"
+            >
+              ×
+            </button>
             <a
               class="card-xshare focus-ring"
               :href="xShareUrl(p)"

@@ -246,6 +246,19 @@ Notes:
 
 ## Changelog
 
+### v0.2.9 — 2025-09-12
+- API: add file-backed `settings.json` with `{ defaultTheme, blogName }`; expose `GET /api/settings` and `PUT /api/settings` (auth) and ensure settings file exists in `ensureStore()`.
+- Web (theme & persistence):
+  - Persist admin-selected default theme via `PUT /api/settings` from header toggle.
+  - Load server default theme for guests when no local preference.
+  - Persist blog name on title save; load blog name for guests when no local override.
+- Web (UI):
+  - Modal theme-aware styling (panel/border/buttons/textarea using theme variables).
+  - Toasts readable on light theme; keep translucent look on dark theme.
+  - Post list: client fallback fetch when SSR misses, then `nextTick()+setupReveal()` so cards render visibly; long words/URLs wrap safely.
+  - New-post form, inputs, and buttons now theme-aware; card background visuals reduced to ~20% opacity.
+- Governance: centralized glyph mesh updated (removed `GOV-SEC-001`, added `GVN-006`, `GVN-008`).
+
 ### v0.2.5 — 2025-09-09
 - API: RFC 6750-compliant auth errors (WWW-Authenticate) and specific codes (token_missing, token_invalid, token_expired, insufficient_scope, auth_required).
 - Web: surface API auth errors via toast with friendly messages; footer shows app version via NUXT_PUBLIC_APP_VERSION.
