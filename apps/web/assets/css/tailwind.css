@@ -22,7 +22,9 @@
   .focus-ring { @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 focus-visible:ring-offset-0; }
   .hover-lift { @apply transition-transform duration-normal ease-entrance hover:-translate-y-0.5 hover:shadow-lift; }
   .hover-ring { @apply transition ring-1 ring-transparent hover:ring-base-border/70; }
-  .prose-content { @apply prose prose-invert prose-zinc max-w-prose md:max-w-2xl; }
+  /* Use normal prose in light theme; invert only in dark for readability */
+  .prose-content { @apply prose prose-zinc max-w-prose md:max-w-2xl; }
+  .dark .prose-content { @apply prose-invert; }
   /* Enhance images inside prose for centered 3D presence */
   .prose-content img {
     display: block;
@@ -56,6 +58,7 @@
     filter: saturate(110%);
     pointer-events: none;
     z-index: 0;
+    opacity: 0.2; /* make background ring subtle in light theme */
   }
   .card-art::after { /* inner bevel + soft top sheen */
     content: "";
@@ -79,6 +82,7 @@
       inset 0 -2px 0 rgba(0,0,0,0.45);
     pointer-events: none;
     z-index: 0;
+    opacity: 0.2; /* reduce background graphics intensity to ~20% */
   }
   .card-art:hover::after {
     background:
@@ -87,6 +91,7 @@
       radial-gradient(130px 64px at 0% 100%, rgba(99,102,241,0.14), rgba(99,102,241,0) 60%),
       linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 28%),
       linear-gradient(180deg, rgba(0,0,0,0) 70%, rgba(0,0,0,0.25));
+    opacity: 0.25; /* slightly stronger on hover, still subtle */
   }
 
   /* Scroll reveal utility */
