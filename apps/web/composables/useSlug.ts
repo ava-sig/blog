@@ -1,6 +1,23 @@
-import { useRequestURL } from 'nuxt/app'
+import { useRequestHeaders, useRequestURL } from 'nuxt/app'
 
 export function useSlug() {
+  function currentOrigin(): string {
+    if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin
+    try {
+      const headers = useRequestHeaders(['x-forwarded-proto', 'x-forwarded-host', 'host'])
+      const proto = String(headers['x-forwarded-proto'] || '').split(',')[0]?.trim()
+      const host = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0]?.trim()
+      if (proto && host) return `${proto}://${host}`
+      const reqUrl = useRequestURL()
+      if (host) {
+        const fallbackProto = String(reqUrl?.protocol || '').replace(/:$/, '') || 'https'
+        return `${fallbackProto}://${host}`
+      }
+      if (reqUrl?.origin && reqUrl.origin !== 'null') return reqUrl.origin
+    } catch {}
+    return ''
+  }
+
   function titleToSlug(input: string): string {
     return String(input || '')
       .normalize('NFKD')
@@ -18,11 +35,8 @@ export function useSlug() {
   function postUrl(p: any): string {
     const slug = canonicalSlug(p)
     if (!slug) return ''
-    if (typeof window !== 'undefined' && window.location) return `${window.location.origin}/p/${slug}`
-    try {
-      const reqUrl = useRequestURL()
-      if (reqUrl?.origin) return `${reqUrl.origin}/p/${slug}`
-    } catch {}
+    const origin = currentOrigin()
+    if (origin) return `${origin}/p/${slug}`
     return `/p/${slug}`
   }
 

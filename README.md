@@ -283,6 +283,15 @@ Notes:
 
 ## Changelog
 
+### v0.2.15 — 2026-05-02
+- Web (social cards):
+  - Make SSR post URLs resolve against forwarded host/protocol headers so canonical URLs and `og:url` are emitted as absolute URLs on the live site.
+  - This brings the social metadata into a fully consistent shape for X/Twitter previews alongside the already-correct `og:image` and `twitter:image` tags.
+- Tests:
+  - Extend the slug/url test coverage for forwarded-header SSR URL generation.
+- Deploy:
+  - Refresh `.env.prod.example` to point to `v0.2.15`.
+
 ### v0.2.14 — 2026-05-02
 - Web (social cards):
   - Move single-post data loading and Open Graph / Twitter card metadata onto the SSR path so X can see `og:image` and render link previews with the post image.
