@@ -6,13 +6,47 @@ const multer = require('multer')
 const jwt = require('jsonwebtoken')
 
 const app = express()
+app.disable('x-powered-by')
 app.use(express.json())
-// Very permissive CORS for dev
+
+const configuredCorsOrigins = String(process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(x => x.trim())
+  .filter(Boolean)
+const isProduction = process.env.NODE_ENV === 'production'
+const localDevOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true
+  if (configuredCorsOrigins.length > 0) return configuredCorsOrigins.includes(origin)
+  return !isProduction && localDevOriginPattern.test(origin)
+}
+
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  if (req.method === 'OPTIONS') return res.sendStatus(200)
+  res.setHeader('Referrer-Policy', 'no-referrer')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  next()
+})
+
+// Restrictive CORS for production, localhost-friendly in development.
+app.use((req, res, next) => {
+  const origin = String(req.headers.origin || '')
+  const allowed = isAllowedOrigin(origin)
+
+  if (origin && allowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+  }
+  if (allowed) {
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  }
+  if (req.method === 'OPTIONS') {
+    if (!allowed) return res.status(403).json({ error: 'origin_forbidden' })
+    return res.sendStatus(204)
+  }
   next()
 })
 
@@ -267,20 +301,45 @@ app.get('/api/authz', requireAuth, (_req, res) => {
 })
 
 // File uploads
+const allowedUploadTypes = new Map([
+  ['image/png', '.png'],
+  ['image/jpeg', '.jpg'],
+  ['image/gif', '.gif'],
+  ['image/webp', '.webp'],
+  ['image/bmp', '.bmp'],
+])
+
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.bin'
+    const ext = allowedUploadTypes.get(file.mimetype) || '.bin'
     const name = randomUUID() + ext
     cb(null, name)
   },
 })
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }) // 10MB
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!allowedUploadTypes.has(file.mimetype)) {
+      return cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'image'))
+    }
+    cb(null, true)
+  },
+}) // 10MB
 
 app.post('/api/upload', requireAuth, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'no_file' })
   const url = `/uploads/${req.file.filename}`
   res.json({ ok: true, url })
+})
+
+app.use((err, _req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ error: 'file_too_large' })
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') return res.status(400).json({ error: 'invalid_file_type' })
+  }
+  return next(err)
 })
 
 module.exports = { app, initDb: async () => {} }

@@ -12,10 +12,13 @@ export const useTheme = defineStore('theme', {
     theme: 'light', // default theme
   }),
   actions: {
-    setTheme(next: Theme) {
+    applyTheme(next: Theme, options?: { persist?: boolean }) {
       this.theme = next
       this.applyThemeClass()
-      this.persist()
+      if (options?.persist !== false) this.persist()
+    },
+    setTheme(next: Theme) {
+      this.applyTheme(next, { persist: true })
     },
     toggleTheme() {
       this.setTheme(this.theme === 'dark' ? 'light' : 'dark')
@@ -29,40 +32,37 @@ export const useTheme = defineStore('theme', {
     persist() {
       try { localStorage.setItem('ui.theme', this.theme) } catch {}
     },
-    load() {
+    async load() {
       if (typeof window === 'undefined') return
-      (async () => {
-        // Local preference takes precedence
-        try {
-          const t = (localStorage.getItem('ui.theme') as Theme) || ''
-          if (t === 'dark' || t === 'light') {
-            this.theme = t
-            this.applyThemeClass()
+      // Local preference takes precedence.
+      try {
+        const t = (localStorage.getItem('ui.theme') as Theme) || ''
+        if (t === 'dark' || t === 'light') {
+          this.applyTheme(t, { persist: false })
+          return
+        }
+      } catch {}
+
+      // Fallback to server default if available. Do not persist it locally:
+      // guests should keep following the current server default until they
+      // explicitly choose a theme for themselves.
+      try {
+        const cfg = useRuntimeConfig()
+        const base = (cfg.public as any)?.apiBase || ''
+        const url = `${String(base).replace(/\/$/, '')}/api/settings`
+        const r = await fetch(url)
+        if (r.ok) {
+          const data = await r.json()
+          const dt = data?.defaultTheme
+          if (dt === 'dark' || dt === 'light') {
+            this.applyTheme(dt, { persist: false })
             return
           }
-        } catch {}
+        }
+      } catch {}
 
-        // Fallback to server default if available
-        try {
-          const cfg = useRuntimeConfig()
-          const base = (cfg.public as any)?.apiBase || ''
-          const url = `${String(base).replace(/\/$/, '')}/api/settings`
-          const r = await fetch(url)
-          if (r.ok) {
-            const data = await r.json()
-            const dt = data?.defaultTheme
-            if (dt === 'dark' || dt === 'light') {
-              this.theme = dt
-              this.applyThemeClass()
-              return
-            }
-          }
-        } catch {}
-
-        // Final fallback
-        this.theme = 'light'
-        this.applyThemeClass()
-      })()
+      // Final fallback
+      this.applyTheme('light', { persist: false })
     },
   },
 })

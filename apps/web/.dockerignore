@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.npm
+.env
+.env.*
+.git
+.DS_Store
+.nuxt
+.output
+coverage
+tests
+tests-e2e

@@ -64,12 +64,6 @@ Deploy the latest release using prebuilt images from Docker Hub namespace `ava20
 1) Create `.env.prod` next to `docker-compose.prod.yml` (use `.env.prod.example` as a base):
 
 ```env
-# DB
-POSTGRES_USER=blog
-POSTGRES_PASSWORD=change_me
-POSTGRES_DB=blogdb
-POSTGRES_PORT=5433
-
 # API
 JWT_SECRET=super_secret_value
 CORS_ORIGIN=https://your.site
@@ -90,6 +84,7 @@ docker compose -f docker-compose.prod.yml ps
 Notes
 - Web runs in the container on PORT=5000; expose via Nginx or port mapping (e.g., 5588:5000).
 - API runs on 3000; expose via Nginx or mapping (e.g., 3388:3000).
+- The production compose file runs both containers as non-root, drops Linux capabilities, and keeps the root filesystem read-only.
 - Current web image includes the Nuxt vite-builder runtime fix and stable Nitro start.
 
 Rollback
@@ -148,7 +143,17 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml ps
 ```
 
-The API persists uploads in the named volume `api_data` mounted at `/app/data`.
+The API persists uploads in the named volume `api_data` mounted at `/app/data`. No database service is required for the current production app.
+
+### 3.5) DigitalOcean Droplet checklist
+- Create an Ubuntu Droplet with Docker Engine and Docker Compose plugin installed.
+- Create a non-root deploy user and add it to the `docker` group.
+- Copy `docker-compose.prod.yml` and `.env.prod` to the server.
+- Log in to Docker Hub on the Droplet with `docker login`.
+- Keep only ports `80` and `443` open publicly; the compose file binds app ports to `127.0.0.1` only.
+- Pull and start with `docker compose --env-file .env.prod -f docker-compose.prod.yml up -d`.
+- Put Nginx in front of `127.0.0.1:5000` and `127.0.0.1:3000`, then issue TLS certificates with Let's Encrypt.
+- Store `JWT_SECRET` only in `.env.prod` on the server and rotate it if a token is ever exposed.
 
 ### 4) Nginx reverse proxy
 Terminate TLS at Nginx and proxy to the internal ports:
@@ -196,6 +201,38 @@ cd apps/web && npm i && npm run dev
 cd ../api && npm i && npm run dev
 ```
 
+## Local production smoke test
+
+Build the hardened images locally and run the production compose stack with localhost-friendly env values:
+
+```bash
+cp .env.prod.example .env.prod.local
+```
+
+Edit `.env.prod.local` to use:
+
+```env
+DOCKER_NS=local
+TAG=dev
+WEB_DOMAIN=localhost
+API_DOMAIN=localhost
+NUXT_PUBLIC_API_BASE=http://127.0.0.1:3000
+CORS_ORIGIN=http://127.0.0.1:5000,http://localhost:5000
+PUBLIC_BASE_URL=http://127.0.0.1:3000
+JWT_SECRET=change-me-now
+```
+
+Then build and run:
+
+```bash
+docker build -t local/glyph-api:dev -f apps/api/Dockerfile apps/api
+docker build -t local/glyph-web:dev -f apps/web/Dockerfile apps/web
+docker compose --env-file .env.prod.local -f docker-compose.prod.yml up -d
+docker compose --env-file .env.prod.local -f docker-compose.prod.yml ps
+curl -i http://127.0.0.1:3000/api/health
+curl -I http://127.0.0.1:5000/
+```
+
 ---
 
 ## E2E Testing (Playwright)
@@ -220,8 +257,8 @@ NUXT_PUBLIC_API_BASE=http://localhost:3388
 ### Run E2E locally
 
 ```bash
-# 1) Start API + DB (in another terminal)
-docker compose up -d db api
+# 1) Start API (in another terminal)
+docker compose up -d api
 
 # 2) From repo root, run Playwright tests
 cd apps/web
@@ -237,7 +274,7 @@ Notes:
 
 ### CI behavior
 - `.github/workflows/ci.yml` defines an `e2e` job that:
-  - Brings up `db` + `api` via `docker compose` (API exposed on host `:3388`).
+  - Brings up `api` via `docker compose` (API exposed on host `:3388`).
   - Seeds a CI `.env` with `JWT_SECRET` (from `E2E_JWT_SECRET` secret), `API_BASE`, and `NUXT_PUBLIC_API_BASE`.
   - Installs Playwright browsers and runs the E2E suite with the frontend on `FRONTEND_PORT=5999`.
   - Tears down Docker after completion.
@@ -245,6 +282,23 @@ Notes:
 ---
 
 ## Changelog
+
+### v0.2.11 — 2026-05-02
+- Docker / production hardening:
+  - Run both production containers as non-root users, keep the root filesystem read-only, drop Linux capabilities, and add container health checks in `docker-compose.prod.yml`.
+  - Add per-app `.dockerignore` files to keep Docker build contexts lean and avoid shipping local artifacts into images.
+  - Remove the unused Postgres service and dead database env wiring from local/prod compose, examples, docs, and CI so deploys match the file-backed API architecture.
+- API:
+  - Respect `PORT` in `src/server.js` and improve startup logging.
+  - Tighten CORS behavior so production uses configured origins instead of wildcard access.
+  - Add basic security headers and restrict uploads to known image MIME types with clearer validation errors.
+- Web / theme defaults:
+  - Keep the server `defaultTheme` authoritative for unauthenticated users until they explicitly choose a local preference.
+  - Keep explicit browser theme choices in `localStorage`, but stop persisting server-provided defaults as if they were user overrides.
+  - Add a focused store test covering guest defaults versus explicit local theme overrides.
+- Docs / release workflow:
+  - Expand the README with a DigitalOcean droplet checklist, local production smoke-test instructions, and updated deploy guidance for the hardened Docker setup.
+  - Refresh `.env.prod.example` to point to `v0.2.11` and include `NUXT_PUBLIC_APP_VERSION=${TAG}` for footer version labeling.
 
 ### v0.2.9 — 2025-09-12
 - API: add file-backed `settings.json` with `{ defaultTheme, blogName }`; expose `GET /api/settings` and `PUT /api/settings` (auth) and ensure settings file exists in `ensureStore()`.

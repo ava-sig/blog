@@ -210,23 +210,10 @@ onMounted(() => {
   if (typeof q === 'string' && q.length > 0) {
     router.replace({ path: route.path, query: {} })
   }
-  // Load default theme for guests if no local preference
-  ;(async () => {
-    try {
-      const hasLocalTheme = !!localStorage.getItem('ui.theme')
-      if (!hasLocalTheme) {
-        const cfg = useRuntimeConfig()
-        const base = (cfg.public as any)?.apiBase || ''
-        const url = `${String(base).replace(/\/$/, '')}/api/settings`
-        const r = await fetch(url)
-        if (r.ok) {
-          const data = await r.json()
-          const dt = data?.defaultTheme
-          if (dt === 'light' || dt === 'dark') theme.setTheme(dt)
-        }
-      }
-    } catch {}
-  })()
+  // Resolve theme from browser preference first, then the server default.
+  // This keeps guests following the latest default until they make an
+  // explicit client-side choice.
+  theme.load()
   // Load blogName from settings if there is no local override
   ;(async () => {
     try {

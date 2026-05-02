@@ -1,28 +1,28 @@
 services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    restart: unless-stopped
   api:
     image: ${DOCKER_NS:-youruser}/glyph-api:${TAG:-latest}
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       CORS_ORIGIN: ${CORS_ORIGIN}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
       JWT_SECRET: ${JWT_SECRET}
     volumes:
       - api_data:/app/data
-    depends_on:
-      - db
     ports:
       - "127.0.0.1:3000:3000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'const http=require(\"http\");const req=http.request({host:\"127.0.0.1\",port:3000,path:\"/api/health\"},res=>process.exit(res.statusCode===200?0:1));req.on(\"error\",()=>process.exit(1));req.end();'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   web:
@@ -34,11 +34,23 @@ services:
       NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE}
       NUXT_PUBLIC_APP_VERSION: ${NUXT_PUBLIC_APP_VERSION}
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
       - "127.0.0.1:5000:5000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'const http=require(\"http\");const req=http.request({host:\"127.0.0.1\",port:5000,path:\"/\"},res=>process.exit(res.statusCode<500?0:1));req.on(\"error\",()=>process.exit(1));req.end();'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 volumes:
   api_data:
-  pgdata:
