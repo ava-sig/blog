@@ -1,4 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+vi.mock('nuxt/app', () => ({
+  useRequestURL: () => new URL('https://blog.example.com/'),
+}))
+
 import { useSlug } from '../composables/useSlug'
 
 describe('useSlug', () => {
@@ -15,9 +20,9 @@ describe('useSlug', () => {
     expect(canonicalSlug({ id: '123' })).toBe('123')
   })
 
-  it('postUrl builds relative when no window present', () => {
+  it('postUrl builds absolute from the request URL during SSR', () => {
     const p = { title: 'T' }
-    expect(postUrl(p)).toBe('/p/t')
+    expect(postUrl(p)).toBe('https://blog.example.com/p/t')
   })
 
   it('xShareUrl composes intent with text and url', () => {
@@ -25,6 +30,6 @@ describe('useSlug', () => {
     const url = xShareUrl(p)
     expect(url).toContain('https://x.com/intent/tweet?')
     expect(url).toContain('text=Hello%20World')
-    expect(url).toContain('url=%2Fp%2Fhello-world')
+    expect(url).toContain('url=https%3A%2F%2Fblog.example.com%2Fp%2Fhello-world')
   })
 })

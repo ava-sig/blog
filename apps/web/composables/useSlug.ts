@@ -1,3 +1,5 @@
+import { useRequestURL } from 'nuxt/app'
+
 export function useSlug() {
   function titleToSlug(input: string): string {
     return String(input || '')
@@ -17,6 +19,10 @@ export function useSlug() {
     const slug = canonicalSlug(p)
     if (!slug) return ''
     if (typeof window !== 'undefined' && window.location) return `${window.location.origin}/p/${slug}`
+    try {
+      const reqUrl = useRequestURL()
+      if (reqUrl?.origin) return `${reqUrl.origin}/p/${slug}`
+    } catch {}
     return `/p/${slug}`
   }
 

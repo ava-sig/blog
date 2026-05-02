@@ -283,6 +283,12 @@ Notes:
 
 ## Changelog
 
+### v0.2.12 — 2026-05-02
+- Web (sharing):
+  - Fix the X share button on the home feed so it generates absolute post URLs during SSR instead of falling back to relative `/p/...` links.
+  - Keep single-post and home-feed share links consistent by deriving the origin from Nuxt request context on the server.
+  - Update slug/share tests to cover SSR absolute URL generation.
+
 ### v0.2.11 — 2026-05-02
 - Docker / production hardening:
   - Run both production containers as non-root users, keep the root filesystem read-only, drop Linux capabilities, and add container health checks in `docker-compose.prod.yml`.
