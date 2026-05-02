@@ -93,6 +93,7 @@
             v-for="p in posts"
             :key="p.id"
             class="panel card card-art reveal p-4 cursor-default hover-lift hover-ring focus-ring"
+            :data-post-id="p.id"
             tabindex="0"
             @click="onCardClick(p, $event)"
             @paste.stop="editingId === p.id ? onPaste($event as any) : null"
@@ -186,6 +187,8 @@
             </template>
 
             <div class="text-[12px] text-base-sub mt-3 pt-2 border-t border-base-border/60">
+              <span class="font-medium">{{ metricsLabel(p) }}</span>
+              <span class="mx-2">·</span>
               Updated: {{ formatTs(p.updatedAt || p.createdAt) }}
             </div>
           </li>
@@ -264,6 +267,35 @@ const toastType = ref<'success' | 'error'>('success')
 
 let observer: IntersectionObserver | null = null
 
+function metricsLabel(p: any) {
+  const viewed = Number(p?.metrics?.viewed || 0)
+  const opened = Number(p?.metrics?.opened || 0)
+  return `${viewed}:${opened}`
+}
+
+function metricSessionKey(kind: 'viewed' | 'opened', id: string) {
+  return `metrics.${kind}.${id}`
+}
+
+async function recordMetric(id: string, kind: 'viewed' | 'opened') {
+  if (!id || typeof window === 'undefined') return
+  const key = metricSessionKey(kind, id)
+  try {
+    if (window.sessionStorage.getItem(key) === '1') return
+  } catch {}
+  try {
+    const result = await api.post(`/posts/${id}/metric`, { kind })
+    const i = posts.value.findIndex(p => p.id === id)
+    if (i !== -1 && result?.metrics) {
+      posts.value[i] = {
+        ...posts.value[i],
+        metrics: result.metrics,
+      }
+    }
+    try { window.sessionStorage.setItem(key, '1') } catch {}
+  } catch {}
+}
+
 function setupReveal() {
   if (typeof window === 'undefined') return
   if (observer) observer.disconnect()
@@ -271,6 +303,8 @@ function setupReveal() {
     for (const en of entries) {
       if (en.isIntersecting) {
         en.target.classList.add('in')
+        const id = (en.target as HTMLElement).dataset.postId || ''
+        if (id) void recordMetric(id, 'viewed')
         observer?.unobserve(en.target)
       }
     }

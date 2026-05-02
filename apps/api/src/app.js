@@ -104,7 +104,7 @@ function readPosts() {
         // ignore seed parse errors, fall through to return current data
       }
     }
-    return data
+    return Array.isArray(data) ? data.map(normalizePost) : []
   } catch {
     return []
   }
@@ -112,7 +112,25 @@ function readPosts() {
 
 function writePosts(posts) {
   ensureStore()
-  fs.writeFileSync(postsFile, JSON.stringify(posts, null, 2))
+  const normalized = Array.isArray(posts) ? posts.map(normalizePost) : []
+  fs.writeFileSync(postsFile, JSON.stringify(normalized, null, 2))
+}
+
+function normalizeMetrics(metrics) {
+  const viewed = Number(metrics?.viewed || 0)
+  const opened = Number(metrics?.opened || 0)
+  return {
+    viewed: Number.isFinite(viewed) && viewed > 0 ? Math.floor(viewed) : 0,
+    opened: Number.isFinite(opened) && opened > 0 ? Math.floor(opened) : 0,
+  }
+}
+
+function normalizePost(post) {
+  if (!post || typeof post !== 'object') return post
+  return {
+    ...post,
+    metrics: normalizeMetrics(post.metrics),
+  }
 }
 
 function readSettings() {
@@ -169,6 +187,27 @@ app.get('/api/posts/:id', (req, res) => {
     return res.status(404).json({ error: 'Not found' })
   }
   res.json(p)
+})
+
+app.post('/api/posts/:id/metric', (req, res) => {
+  const posts = readPosts()
+  const idx = posts.findIndex(x => String(x.id) === String(req.params.id))
+  if (idx === -1) return res.status(404).json({ error: 'Not found' })
+  const kind = String(req.body?.kind || '')
+  if (kind !== 'viewed' && kind !== 'opened') {
+    return res.status(400).json({ error: 'invalid_metric_kind' })
+  }
+  const current = normalizePost(posts[idx])
+  const next = {
+    ...current,
+    metrics: {
+      ...current.metrics,
+      [kind]: Number(current.metrics?.[kind] || 0) + 1,
+    },
+  }
+  posts[idx] = next
+  writePosts(posts)
+  res.json({ ok: true, id: next.id, metrics: next.metrics })
 })
 
 // Settings (theme default for guests)
@@ -261,6 +300,7 @@ app.post('/api/posts', requireAuth, (req, res) => {
     status: status || 'draft',
     createdAt,
     updatedAt: createdAt,
+    metrics: { viewed: 0, opened: 0 },
   }
   posts.unshift(post)
   writePosts(posts)

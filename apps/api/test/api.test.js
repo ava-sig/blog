@@ -215,6 +215,16 @@ test('CRUD with token', async () => {
   assert.equal(one.status, 200)
   const oneBody = await one.json()
   assert.equal(oneBody.title, 'Hello')
+  assert.deepEqual(oneBody.metrics, { viewed: 0, opened: 0 })
+
+  // Public metrics
+  const viewed = await json('POST', '/api/posts/' + id + '/metric', { kind: 'viewed' })
+  assert.equal(viewed.status, 200)
+  assert.deepEqual(viewed.data.metrics, { viewed: 1, opened: 0 })
+
+  const opened = await json('POST', '/api/posts/' + id + '/metric', { kind: 'opened' })
+  assert.equal(opened.status, 200)
+  assert.deepEqual(opened.data.metrics, { viewed: 1, opened: 1 })
 
   // Update
   const updated = await json('PUT', '/api/posts/' + id, { title: 'Hello2', content: 'World2', slug: 'hello2', status: 'published' }, 'test-token')
@@ -222,6 +232,7 @@ test('CRUD with token', async () => {
   assert.equal(updated.data.title, 'Hello2')
   assert.equal(updated.data.slug, 'hello2')
   assert.equal(updated.data.status, 'published')
+  assert.deepEqual(updated.data.metrics, { viewed: 1, opened: 1 })
 
   // Delete
   const del = await fetch(baseURL + '/api/posts/' + id, { method: 'DELETE', headers: { Authorization: 'Bearer test-token' } })

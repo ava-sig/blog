@@ -283,6 +283,18 @@ Notes:
 
 ## Changelog
 
+### v0.2.14 — 2026-05-02
+- Web (social cards):
+  - Move single-post data loading and Open Graph / Twitter card metadata onto the SSR path so X can see `og:image` and render link previews with the post image.
+- Metrics:
+  - Add persisted per-post `viewed` and `opened` counters.
+  - Count `viewed` when a post card becomes visible on the home feed and `opened` when a reader enters the single-post view.
+  - Show the ratio inline on home cards as `viewed:opened`.
+- API:
+  - Add a public `POST /api/posts/:id/metric` endpoint for metric increments and normalize legacy posts to include zeroed metrics.
+- Deploy:
+  - Refresh `.env.prod.example` to point to `v0.2.14`.
+
 ### v0.2.13 — 2026-05-02
 - Web (footer):
   - Normalize the footer version label so `NUXT_PUBLIC_APP_VERSION=v0.2.12` renders as `v0.2.12` instead of `vv0.2.12`.

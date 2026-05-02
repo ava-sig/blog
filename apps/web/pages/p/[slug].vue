@@ -116,9 +116,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useHead, useRuntimeConfig } from 'nuxt/app'
+import { useHead, useRuntimeConfig, useAsyncData, useRequestURL } from 'nuxt/app'
 import { useApi } from '~/composables/useApi'
 import { useAuth } from '~/stores/auth'
 import { useContent } from '~/composables/useContent'
@@ -130,13 +130,12 @@ const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const runtime = useRuntimeConfig()
-// runtime used for SEO meta fallback, no apiBase needed here
+const requestUrl = useRequestURL()
 
 // Shared composables
 const { renderContent, firstImageUrl } = useContent()
 const { titleToSlug, canonicalSlug, postUrl, xShareUrl } = useSlug()
 
-const loading = ref(false)
 const error = ref('')
 const post = ref<any | null>(null)
 const auth = useAuth()
@@ -144,6 +143,7 @@ const isEditing = ref(false)
 const editTitle = ref('')
 const editContent = ref('')
 const uploading = ref(false)
+const slug = computed(() => String(route.params.slug || ''))
 
 function formatTs(input: string) {
   try {
@@ -187,8 +187,6 @@ async function saveEdit() {
     }
     const updated = await api.put(`/posts/${post.value.id}`, payload)
     post.value = updated
-    // ensure head reflects new title
-    useHead({ title: post.value.title || 'Post' })
     isEditing.value = false
   } catch (e: any) {
     error.value = e?.message || 'Failed to save post'
@@ -225,72 +223,101 @@ function extractDescription(text: string): string {
 
 // removed local renderContent and canonical helpers in favor of composables
 
-async function fetchOne() {
-  loading.value = true
-  error.value = ''
-  try {
-    const slug = route.params.slug as string
-    // Conservative: fetch list then find by slug to avoid backend coupling
-    const list = await api.get('/posts')
-    const match = (p: any) => {
-      const ts = titleToSlug(p?.title || '')
-      return p?.id === slug || p?.slug === slug || (!!ts && ts === slug)
-    }
-    post.value = Array.isArray(list) ? list.find(match) || null : null
-    if (!post.value) error.value = 'Post not found'
-    // Normalize URL to canonical slug (prefer title-based)
-    if (post.value) {
-      const want = canonicalSlug(post.value)
-      if (want && want !== slug) router.replace({ path: `/p/${want}` })
-      // Set SEO and social sharing tags (Twitter Card / Open Graph)
-      const img = firstImageUrl(post.value?.content || '')
-      const fallback = (runtime.public as any)?.socialFallback || ''
-      const pageUrl = postUrl(post.value)
-      const desc = extractDescription(post.value?.content || '')
-      const meta: any[] = [
-        { property: 'og:title', content: post.value.title || '' },
-        { property: 'og:type', content: 'article' },
-        { property: 'og:url', content: pageUrl },
-        { property: 'og:description', content: desc },
-        { name: 'twitter:title', content: post.value.title || '' },
-        { name: 'twitter:description', content: desc },
-      ]
-      if (img) {
-        meta.push({ name: 'twitter:card', content: 'summary_large_image' })
-        meta.push({ property: 'og:image', content: img })
-        meta.push({ name: 'twitter:image', content: img })
-      } else {
-        if (fallback) {
-          meta.push({ name: 'twitter:card', content: 'summary_large_image' })
-          meta.push({ property: 'og:image', content: fallback })
-          meta.push({ name: 'twitter:image', content: fallback })
-        } else {
-          meta.push({ name: 'twitter:card', content: 'summary' })
-        }
-      }
-      useHead({
-        title: post.value.title || 'Post',
-        link: ([
-          { rel: 'canonical', href: pageUrl },
-          ...(img ? [{ rel: 'preload', as: 'image', href: img }] : (fallback ? [{ rel: 'preload', as: 'image', href: fallback }] : [])),
-        ]) as any,
-        meta,
-      })
-      // Prepare edit buffers
-      editTitle.value = post.value.title
-      editContent.value = post.value.content
-    }
-  } catch (e: any) {
-    error.value = e?.message || 'Failed to load post'
-  } finally {
-    loading.value = false
+function findPost(list: any, currentSlug: string) {
+  if (!Array.isArray(list)) return null
+  const match = (p: any) => {
+    const ts = titleToSlug(p?.title || '')
+    return p?.id === currentSlug || p?.slug === currentSlug || (!!ts && ts === currentSlug)
   }
+  return list.find(match) || null
 }
 
-// firstImageUrl provided by useContent()
+const { data: postList, pending } = await useAsyncData(
+  () => `post-list:${slug.value}`,
+  () => api.get('/posts'),
+  { watch: [slug] }
+)
 
-onMounted(() => {
-  fetchOne()
+watch([postList, slug], ([list, currentSlug]) => {
+  const nextPost = findPost(list, currentSlug)
+  post.value = nextPost
+  error.value = nextPost ? '' : 'Post not found'
+  if (nextPost) {
+    editTitle.value = nextPost.title
+    editContent.value = nextPost.content
+  }
+}, { immediate: true })
+
+watch(slug, () => {
+  if (!post.value && !pending.value) {
+    error.value = 'Post not found'
+  }
+})
+
+watch(post, (current) => {
+  if (!process.client || !current) return
+  const want = canonicalSlug(current)
+  if (want && want !== slug.value) router.replace({ path: `/p/${want}` })
+}, { immediate: true })
+
+async function recordOpenedMetric(id: string) {
+  if (!id || typeof window === 'undefined') return
+  const key = `metrics.opened.${id}`
+  try {
+    if (window.sessionStorage.getItem(key) === '1') return
+  } catch {}
+  try {
+    const result = await api.post(`/posts/${id}/metric`, { kind: 'opened' })
+    if (post.value && post.value.id === id && result?.metrics) {
+      post.value = {
+        ...post.value,
+        metrics: result.metrics,
+      }
+    }
+    try { window.sessionStorage.setItem(key, '1') } catch {}
+  } catch {}
+}
+
+watch(post, (current) => {
+  if (!process.client || !current?.id) return
+  void recordOpenedMetric(current.id)
+}, { immediate: true })
+
+const loading = computed(() => pending.value)
+const socialFallback = computed(() => String((runtime.public as any)?.socialFallback || ''))
+const description = computed(() => extractDescription(post.value?.content || ''))
+const socialImage = computed(() => firstImageUrl(post.value?.content || '') || socialFallback.value)
+const pageUrl = computed(() => {
+  if (post.value) return postUrl(post.value)
+  const base = requestUrl?.origin || ''
+  return base ? `${base}/p/${slug.value}` : `/p/${slug.value}`
+})
+
+useHead(() => {
+  const meta: any[] = []
+  if (post.value) {
+    meta.push({ property: 'og:title', content: post.value.title || '' })
+    meta.push({ property: 'og:type', content: 'article' })
+    meta.push({ property: 'og:url', content: pageUrl.value })
+    meta.push({ property: 'og:description', content: description.value })
+    meta.push({ name: 'twitter:title', content: post.value.title || '' })
+    meta.push({ name: 'twitter:description', content: description.value })
+    if (socialImage.value) {
+      meta.push({ name: 'twitter:card', content: 'summary_large_image' })
+      meta.push({ property: 'og:image', content: socialImage.value })
+      meta.push({ name: 'twitter:image', content: socialImage.value })
+    } else {
+      meta.push({ name: 'twitter:card', content: 'summary' })
+    }
+  }
+  return {
+    title: post.value?.title || 'Post',
+    link: ([
+      { rel: 'canonical', href: pageUrl.value },
+      ...(socialImage.value ? [{ rel: 'preload', as: 'image', href: socialImage.value }] : []),
+    ]) as any,
+    meta,
+  }
 })
 </script>
 
