@@ -7,6 +7,7 @@ on:
 
 jobs:
   glyphs:
+    if: ${{ vars.ENABLE_GOVERNANCE_GLYPHS == '1' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Checkout central governance
+        if: ${{ vars.ENABLE_GOVERNANCE_GLYPHS == '1' }}
         uses: actions/checkout@v4
         with:
           repository: ava-sig/governance
@@ -62,7 +64,12 @@ jobs:
       - name: Lint API
         run: npm run --prefix apps/api lint
       - name: Run all tests and guards
+        if: ${{ vars.ENABLE_GOVERNANCE_GLYPHS == '1' }}
         run: npm run test:all
+        working-directory: .
+      - name: Run API tests and internal guard without governance glyph checks
+        if: ${{ vars.ENABLE_GOVERNANCE_GLYPHS != '1' }}
+        run: (cd apps/api && npm test) && npm run guard:internal
         working-directory: .
 
   web-build:

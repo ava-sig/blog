@@ -27,6 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Checkout central governance
+        if: ${{ vars.ENABLE_GOVERNANCE_GLYPHS == '1' }}
         uses: actions/checkout@v4
         with:
           repository: ava-sig/governance
@@ -48,8 +49,13 @@ jobs:
           ls -la apps/api/node_modules | head -n 50 || true
           npm --prefix apps/api ls express || true
       - name: Run all tests and guards (root script)
+        if: ${{ vars.ENABLE_GOVERNANCE_GLYPHS == '1' }}
         run: npm run test:all
+      - name: Run API tests and internal guard without governance glyph checks
+        if: ${{ vars.ENABLE_GOVERNANCE_GLYPHS != '1' }}
+        run: (cd apps/api && npm test) && npm run guard:internal
   validate-glyphs:
+    if: ${{ vars.ENABLE_GOVERNANCE_GLYPHS == '1' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

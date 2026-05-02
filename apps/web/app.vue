@@ -115,7 +115,7 @@
         >
           Blog
         </a>
-        <span v-if="appVersion">&nbsp;v{{ appVersion }}</span>
+        <span v-if="appVersionLabel">&nbsp;{{ appVersionLabel }}</span>
       </div>
     </footer>
   </div>
@@ -167,6 +167,9 @@ async function onThemeToggle() {
 // App version from runtime config
 const runtime = useRuntimeConfig()
 const appVersion = (runtime.public as any)?.appVersion || ''
+const appVersionLabel = appVersion
+  ? (String(appVersion).startsWith('v') ? String(appVersion) : `v${appVersion}`)
+  : ''
 
 // Synchronous init to avoid flicker before first paint
 if (typeof window !== 'undefined') {

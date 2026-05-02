@@ -283,6 +283,15 @@ Notes:
 
 ## Changelog
 
+### v0.2.13 — 2026-05-02
+- Web (footer):
+  - Normalize the footer version label so `NUXT_PUBLIC_APP_VERSION=v0.2.12` renders as `v0.2.12` instead of `vv0.2.12`.
+- CI / governance:
+  - Soft-disable governance glyph validation by default in CI and Glyph & Docs Guard while the separate `ava-sig/governance` repo is temporarily divergent.
+  - Keep the governance-dependent jobs available behind the repo variable `ENABLE_GOVERNANCE_GLYPHS=1`.
+- Deploy:
+  - Refresh `.env.prod.example` to point to `v0.2.13`.
+
 ### v0.2.12 — 2026-05-02
 - Web (sharing):
   - Fix the X share button on the home feed so it generates absolute post URLs during SSR instead of falling back to relative `/p/...` links.
