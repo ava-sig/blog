@@ -18,6 +18,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3388',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || '',
       // Used by pages/p/[slug].vue for OG/Twitter image fallback
       socialFallback: process.env.NUXT_PUBLIC_SOCIAL_FALLBACK || '',
       // Version label shown in footer. Prefer explicit env, otherwise fall back to package version or 'dev'.

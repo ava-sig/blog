@@ -334,7 +334,8 @@ useHead(() => {
   color: #e5e7eb;
 }
 .prose-content {
-  white-space: pre-wrap; /* preserve newlines and blank lines */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 /* X share button (match index card) */
 .card-xshare {

@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('nuxt/app', () => ({
+  useRuntimeConfig: () => ({
+    public: {
+      siteUrl: 'https://blog.example.com',
+    },
+  }),
   useRequestHeaders: () => ({
     'x-forwarded-proto': 'https',
     'x-forwarded-host': 'blog.example.com',

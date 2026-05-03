@@ -1,9 +1,13 @@
-import { useRequestHeaders, useRequestURL } from 'nuxt/app'
+import { useRequestHeaders, useRequestURL, useRuntimeConfig } from 'nuxt/app'
 
 export function useSlug() {
+  const runtime = useRuntimeConfig()
+
   function currentOrigin(): string {
     if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin
     try {
+      const configured = String((runtime.public as any)?.siteUrl || '').replace(/\/$/, '')
+      if (configured) return configured
       const headers = useRequestHeaders(['x-forwarded-proto', 'x-forwarded-host', 'host'])
       const proto = String(headers['x-forwarded-proto'] || '').split(',')[0]?.trim()
       const host = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0]?.trim()
@@ -46,5 +50,5 @@ export function useSlug() {
     return `https://x.com/intent/tweet?text=${text}&url=${url}`
   }
 
-  return { titleToSlug, canonicalSlug, postUrl, xShareUrl }
+  return { currentOrigin, titleToSlug, canonicalSlug, postUrl, xShareUrl }
 }

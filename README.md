@@ -283,6 +283,19 @@ Notes:
 
 ## Changelog
 
+### v0.2.16 — 2026-05-03
+- Web (markdown):
+  - Replace the hand-rolled content regex renderer with a real Markdown pipeline using `markdown-it`.
+  - Support headings, lists, emphasis, paragraphs, links, and explicit Markdown images while preserving existing upload image behavior.
+  - Stop treating bare image URLs as images; image intent is now explicit through `![](...)`.
+- Web (metadata):
+  - Add `NUXT_PUBLIC_SITE_URL` and use it for absolute canonical and Open Graph URL generation instead of relying on inferred request origin.
+- Tests / build:
+  - Update content and slug tests for the new Markdown and URL behavior.
+  - Web unit tests and production build pass with the new renderer.
+- Deploy:
+  - Refresh `.env.prod.example` to point to `v0.2.16`.
+
 ### v0.2.15 — 2026-05-02
 - Web (social cards):
   - Make SSR post URLs resolve against forwarded host/protocol headers so canonical URLs and `og:url` are emitted as absolute URLs on the live site.

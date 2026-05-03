@@ -1,3 +1,4 @@
+import MarkdownIt from 'markdown-it'
 import { useRuntimeConfig } from 'nuxt/app'
 
 export function useContent() {
@@ -11,48 +12,56 @@ export function useContent() {
       .replaceAll('>', '&gt;')
   }
 
+  function normalizeMediaUrl(url: string): string {
+    const value = String(url || '').trim()
+      .replace(/^<|>$/g, '')
+      .replace(/^"+|"+$/g, '')
+      .replace(/[)]+$/g, '')
+    if (value.startsWith('/uploads/')) return `${apiBase}${value}`
+    return value
+  }
+
+  const md = new MarkdownIt({
+    html: false,
+    breaks: true,
+    linkify: false,
+  })
+
+  const defaultImageRule = md.renderer.rules.image
+  md.renderer.rules.image = (tokens, idx, options, env, self) => {
+    const token = tokens[idx]
+    const src = normalizeMediaUrl(token.attrGet('src') || '')
+    token.attrSet('src', src)
+    return defaultImageRule ? defaultImageRule(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options)
+  }
+
+  const defaultLinkOpenRule = md.renderer.rules.link_open
+  md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+    const token = tokens[idx]
+    token.attrSet('target', '_blank')
+    token.attrSet('rel', 'noopener noreferrer')
+    return defaultLinkOpenRule ? defaultLinkOpenRule(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options)
+  }
+
   function renderContent(text: string): string {
     if (!text) return ''
-    const escaped = escapeHtml(text)
-    const withImages = escaped.replace(/!\[[^\]]*\]\(\s*([^\)\s]+)(?:\s+\"[^\"]*\")?\s*\)/g, (_m, url) => {
-      let u = String(url).trim()
-      u = u.replace(/^<|>$/g, '')
-      u = u.replace(/^"+|"+$/g, '')
-      u = u.replace(/[)]+$/g, '')
-      if (u.startsWith('/uploads/')) u = `${apiBase}${u}`
-      return `<img src="${u}" alt="" />\n`
-    })
-    const withLinks = withImages.replace(/\[([^\]]+)\]\(\s*([^\)\s]+)(?:\s+\"[^\"]*\")?\s*\)/g, (_m, text, url) => {
-      let u = String(url).trim()
-      u = u.replace(/^<|>$/g, '')
-      u = u.replace(/^"+|"+$/g, '')
-      u = u.replace(/[)]+$/g, '')
-      const t = String(text)
-      const safeText = t
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-      return `<a href="${u}" target="_blank" rel="noopener noreferrer">${safeText}</a>`
-    })
-    const withBareImages = withLinks.replace(/(https?:\/\/[^\s'\"]+\.(?:png|jpe?g|gif|webp|bmp))(?![^<]*>)/gi, (_m, u) => {
-      let url = String(u)
-      if (url.startsWith('/uploads/')) url = `${apiBase}${url}`
-      return `<img src="${url}" alt="" />`
-    })
-    return withBareImages
+    return md.render(text)
   }
 
   function firstImageUrl(text: string): string | '' {
     if (!text) return ''
-    const m = text.match(/!\[[^\]]*\]\(\s*([^\)\s]+)(?:\s+\"[^\"]*\")?\s*\)/)
-    if (!m) return ''
-    let u = String(m[1] || '').trim()
-    u = u.replace(/^<|>$/g, '')
-    u = u.replace(/^"+|"+$/g, '')
-    u = u.replace(/[)]+$/g, '')
-    if (!u) return ''
-    if (u.startsWith('/uploads/')) return `${apiBase}${u}`
-    return u
+    const tokens = md.parse(text, {})
+    for (const token of tokens) {
+      if (token.type === 'inline' && Array.isArray(token.children)) {
+        for (const child of token.children) {
+          if (child.type === 'image') {
+            const src = normalizeMediaUrl(child.attrGet('src') || '')
+            if (src) return src
+          }
+        }
+      }
+    }
+    return ''
   }
 
   return { escapeHtml, renderContent, firstImageUrl }

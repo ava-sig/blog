@@ -20,7 +20,7 @@ describe('useContent', () => {
   it('renderContent converts markdown images and prefixes /uploads', () => {
     const md = '![alt](/uploads/img.png)'
     const html = content.renderContent(md)
-    expect(html).toContain('<img src="https://api.example.com/uploads/img.png" alt="" />')
+    expect(html).toContain('<img src="https://api.example.com/uploads/img.png" alt="alt">')
   })
 
   it('renderContent converts links with safe text', () => {
@@ -29,10 +29,19 @@ describe('useContent', () => {
     expect(html).toContain('<a href="https://example.com" target="_blank" rel="noopener noreferrer">Click</a>')
   })
 
-  it('renderContent converts bare image URLs', () => {
+  it('renderContent supports markdown structure beyond links and images', () => {
+    const md = '# Hello\n\n- one\n- two\n\n**bold**'
+    const html = content.renderContent(md)
+    expect(html).toContain('<h1>Hello</h1>')
+    expect(html).toContain('<li>one</li>')
+    expect(html).toContain('<strong>bold</strong>')
+  })
+
+  it('renderContent leaves bare URLs as text instead of turning them into images', () => {
     const md = 'https://example.com/a.jpg'
     const html = content.renderContent(md)
-    expect(html).toContain('<img src="https://example.com/a.jpg" alt="" />')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('https://example.com/a.jpg')
   })
 
   it('firstImageUrl finds first markdown image and prefixes /uploads', () => {

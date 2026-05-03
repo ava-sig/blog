@@ -223,23 +223,25 @@ const api = useApi()
 
 // Shared composables
 const { renderContent, firstImageUrl: _firstImageUrl } = useContent()
-const { titleToSlug, canonicalSlug, postUrl: _postUrl, xShareUrl } = useSlug()
+const { titleToSlug, canonicalSlug, currentOrigin, xShareUrl } = useSlug()
 // Error formatting helper
 const { formatApiError } = useErrors()
 
 // SEO: homepage head tags and optional preload of fallback social image
 const runtime = useRuntimeConfig()
 const socialFallback = (runtime.public as any)?.socialFallback || ''
+const siteOrigin = currentOrigin()
+const homeUrl = siteOrigin ? `${siteOrigin}/` : '/'
 useHead({
   title: 'Posts',
   link: ([
-    { rel: 'canonical', href: '/' },
+    { rel: 'canonical', href: homeUrl },
     ...(socialFallback ? [{ rel: 'preload', as: 'image', href: socialFallback }] : []),
   ]) as any,
   meta: ([
     { property: 'og:title', content: 'Posts' },
     { property: 'og:type', content: 'website' },
-    { property: 'og:url', content: '/' },
+    { property: 'og:url', content: homeUrl },
     ...(socialFallback ? [
       { property: 'og:image', content: socialFallback },
       { name: 'twitter:card', content: 'summary_large_image' },
@@ -515,7 +517,6 @@ onMounted(async () => {
 
 <style scoped>
 .prose-content {
-  white-space: pre-wrap; /* preserve newlines and blank lines */
   /* Ensure very long words/URLs wrap within the card */
   overflow-wrap: anywhere;
   word-break: break-word;
