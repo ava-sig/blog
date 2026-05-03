@@ -304,6 +304,7 @@ function setupReveal() {
   observer = new IntersectionObserver((entries) => {
     for (const en of entries) {
       if (en.isIntersecting) {
+        en.target.classList.remove('reveal-pending')
         en.target.classList.add('in')
         const id = (en.target as HTMLElement).dataset.postId || ''
         if (id) void recordMetric(id, 'viewed')
@@ -311,7 +312,19 @@ function setupReveal() {
       }
     }
   }, { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.15 })
-  document.querySelectorAll('li.reveal').forEach(el => observer!.observe(el))
+  document.querySelectorAll('li.reveal').forEach((el) => {
+    const rect = el.getBoundingClientRect()
+    const isInitiallyVisible = rect.top < window.innerHeight * 0.92 && rect.bottom > 0
+    if (isInitiallyVisible) {
+      el.classList.add('in')
+      const id = (el as HTMLElement).dataset.postId || ''
+      if (id) void recordMetric(id, 'viewed')
+      return
+    }
+    el.classList.remove('in')
+    el.classList.add('reveal-pending')
+    observer!.observe(el)
+  })
 }
 
 function formatTs(input: string) {

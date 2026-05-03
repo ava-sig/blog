@@ -149,9 +149,10 @@ function formatTs(input: string) {
   try {
     const d = new Date(input)
     if (isNaN(d.getTime())) return input
-    return new Intl.DateTimeFormat(undefined, {
+    // Keep SSR and CSR output deterministic to avoid hydration drift.
+    return new Intl.DateTimeFormat('en-US', {
       year: 'numeric', month: 'short', day: '2-digit',
-      hour: '2-digit', minute: '2-digit'
+      hour: '2-digit', minute: '2-digit', timeZone: 'UTC'
     }).format(d)
   } catch {
     return input
@@ -239,6 +240,11 @@ const { data: postList, pending } = await useAsyncData(
 )
 
 watch([postList, slug], ([list, currentSlug]) => {
+  if (!currentSlug) {
+    post.value = null
+    error.value = ''
+    return
+  }
   const nextPost = findPost(list, currentSlug)
   post.value = nextPost
   error.value = nextPost ? '' : 'Post not found'
@@ -247,12 +253,6 @@ watch([postList, slug], ([list, currentSlug]) => {
     editContent.value = nextPost.content
   }
 }, { immediate: true })
-
-watch(slug, () => {
-  if (!post.value && !pending.value) {
-    error.value = 'Post not found'
-  }
-})
 
 watch(post, (current) => {
   if (!process.client || !current) return

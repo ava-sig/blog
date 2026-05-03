@@ -283,6 +283,14 @@ Notes:
 
 ## Changelog
 
+### v0.2.17 — 2026-05-03
+- Web (stability):
+  - Make homepage cards visible by default and only apply reveal hiding to genuinely off-screen cards, preventing the feed from appearing blank until interaction or late hydration.
+  - Normalize single-post timestamp formatting to a fixed locale and UTC timezone so SSR and hydration produce the same text.
+  - Remove the transient `Post not found` flash when navigating back from a post to the homepage during route teardown.
+- Deploy:
+  - Refresh `.env.prod.example` to point to `v0.2.17`.
+
 ### v0.2.16 — 2026-05-03
 - Web (markdown):
   - Replace the hand-rolled content regex renderer with a real Markdown pipeline using `markdown-it`.
