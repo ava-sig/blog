@@ -78,6 +78,7 @@
           placeholder="eyJhbGciOi..."
           class="input"
           style="width:100%;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+          @keydown.enter.prevent="submitToken"
         />
         <div
           v-if="loginError"

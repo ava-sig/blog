@@ -179,11 +179,27 @@
                 </NuxtLink>
               </h4>
               <!-- eslint-disable vue/no-v-html -->
-              <div
-                class="prose-content prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-img:rounded-xl prose-img:shadow-subtle"
-                v-html="renderContent(p.content)"
-              />
+              <div class="home-excerpt">
+                <div
+                  class="prose-content prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-img:rounded-xl prose-img:shadow-subtle"
+                  :class="{ 'is-preview': homePreview(p.content).truncated }"
+                  v-html="renderContent(homePreview(p.content).preview)"
+                />
+                <div
+                  v-if="homePreview(p.content).truncated"
+                  class="excerpt-fade"
+                  aria-hidden="true"
+                />
+              </div>
               <!-- eslint-enable vue/no-v-html -->
+              <NuxtLink
+                v-if="homePreview(p.content).truncated"
+                :to="`/p/${canonicalSlug(p)}`"
+                class="read-more-link focus-ring"
+                @click.stop
+              >
+                Read More
+              </NuxtLink>
             </template>
 
             <div class="text-[12px] text-base-sub mt-3 pt-2 border-t border-base-border/60">
@@ -222,7 +238,7 @@ const api = useApi()
 // no runtime needed here
 
 // Shared composables
-const { renderContent, firstImageUrl: _firstImageUrl } = useContent()
+const { renderContent, splitPreview, firstImageUrl: _firstImageUrl } = useContent()
 const { titleToSlug, canonicalSlug, currentOrigin, xShareUrl } = useSlug()
 // Error formatting helper
 const { formatApiError } = useErrors()
@@ -273,6 +289,10 @@ function metricsLabel(p: any) {
   const viewed = Number(p?.metrics?.viewed || 0)
   const opened = Number(p?.metrics?.opened || 0)
   return `${viewed}:${opened}`
+}
+
+function homePreview(text: string) {
+  return splitPreview(text)
 }
 
 function metricSessionKey(kind: 'viewed' | 'opened', id: string) {
@@ -533,6 +553,42 @@ onMounted(async () => {
   /* Ensure very long words/URLs wrap within the card */
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+.home-excerpt {
+  position: relative;
+}
+.prose-content.is-preview {
+  max-height: 16rem;
+  overflow: hidden;
+}
+.excerpt-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5.5rem;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--base-panel), 0),
+    rgba(var(--base-panel), 0.88) 58%,
+    rgba(var(--base-panel), 1)
+  );
+}
+.read-more-link {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  color: #818cf8;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.read-more-link:hover {
+  color: #a5b4fc;
+  text-decoration: underline;
 }
 /* Wrap long titles as well */
 .card h4 {

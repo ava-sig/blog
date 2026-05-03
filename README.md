@@ -283,6 +283,18 @@ Notes:
 
 ## Changelog
 
+### v0.2.18 — 2026-05-03
+- Web (reading flow):
+  - Treat a standalone `---` line inside a post as a homepage teaser cutoff so feed cards stay shorter and defer the rest of the post to the single-post page.
+  - Add a soft fade and `Read More` action on truncated homepage cards.
+- Web (auth UX):
+  - Make the JWT auth modal submit on `Enter` instead of inserting a newline.
+- Tests / build:
+  - Extend web content tests for teaser splitting.
+  - Web unit tests and production build pass.
+- Deploy:
+  - Refresh `.env.prod.example` to point to `v0.2.18`.
+
 ### v0.2.17 — 2026-05-03
 - Web (stability):
   - Make homepage cards visible by default and only apply reveal hiding to genuinely off-screen cards, preventing the feed from appearing blank until interaction or late hydration.

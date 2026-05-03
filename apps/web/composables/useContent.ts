@@ -4,6 +4,7 @@ import { useRuntimeConfig } from 'nuxt/app'
 export function useContent() {
   const runtime = useRuntimeConfig()
   const apiBase = (runtime.public as any)?.apiBase?.replace(/\/$/, '') || ''
+  const previewMarker = /^\s*---\s*$/m
 
   function escapeHtml(s: string) {
     return String(s)
@@ -48,6 +49,19 @@ export function useContent() {
     return md.render(text)
   }
 
+  function splitPreview(text: string): { preview: string; truncated: boolean } {
+    const input = String(text || '')
+    const match = input.match(previewMarker)
+    if (!match || typeof match.index !== 'number') {
+      return { preview: input, truncated: false }
+    }
+    const preview = input.slice(0, match.index).trimEnd()
+    if (!preview.trim()) {
+      return { preview: input, truncated: false }
+    }
+    return { preview, truncated: true }
+  }
+
   function firstImageUrl(text: string): string | '' {
     if (!text) return ''
     const tokens = md.parse(text, {})
@@ -64,5 +78,5 @@ export function useContent() {
     return ''
   }
 
-  return { escapeHtml, renderContent, firstImageUrl }
+  return { escapeHtml, renderContent, splitPreview, firstImageUrl }
 }

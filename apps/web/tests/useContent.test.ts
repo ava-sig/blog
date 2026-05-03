@@ -44,6 +44,22 @@ describe('useContent', () => {
     expect(html).toContain('https://example.com/a.jpg')
   })
 
+  it('splitPreview truncates feed content at a standalone separator', () => {
+    const md = '# Hello\n\nLead text\n\n---\n\n## Hidden\nMore'
+    expect(content.splitPreview(md)).toEqual({
+      preview: '# Hello\n\nLead text',
+      truncated: true,
+    })
+  })
+
+  it('splitPreview ignores separators when there is no lead content', () => {
+    const md = '---\n\n## Full Post'
+    expect(content.splitPreview(md)).toEqual({
+      preview: md,
+      truncated: false,
+    })
+  })
+
   it('firstImageUrl finds first markdown image and prefixes /uploads', () => {
     const md = 'text ![x](/uploads/a.jpg) more ![y](https://x/y.jpg)'
     expect(content.firstImageUrl(md)).toBe('https://api.example.com/uploads/a.jpg')
