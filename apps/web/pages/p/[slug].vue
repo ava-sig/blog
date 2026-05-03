@@ -108,7 +108,7 @@
           />
         </template>
         <div class="text-[12px] text-base-sub mt-3 pt-2 border-t border-base-border/60">
-          Updated: {{ formatTs(post.updatedAt || post.createdAt) }}
+          Updated: {{ formatTs(post.updatedAt || post.createdAt || '') }}
         </div>
       </div>
     </section>
@@ -132,12 +132,27 @@ const api = useApi()
 const runtime = useRuntimeConfig()
 const requestUrl = useRequestURL()
 
+interface PostMetrics {
+  viewed: number
+  opened: number
+}
+
+interface PostRecord {
+  id: string
+  title: string
+  content: string
+  slug?: string
+  createdAt?: string
+  updatedAt?: string
+  metrics?: PostMetrics
+}
+
 // Shared composables
 const { renderContent, firstImageUrl } = useContent()
 const { titleToSlug, canonicalSlug, postUrl, xShareUrl } = useSlug()
 
 const error = ref('')
-const post = ref<any | null>(null)
+const post = ref<PostRecord | null>(null)
 const auth = useAuth()
 const isEditing = ref(false)
 const editTitle = ref('')
@@ -186,7 +201,7 @@ async function saveEdit() {
       slug: titleToSlug(editTitle.value),
       status: 'draft',
     }
-    const updated = await api.put(`/posts/${post.value.id}`, payload)
+    const updated = await api.put<PostRecord>(`/posts/${post.value.id}`, payload)
     post.value = updated
     isEditing.value = false
   } catch (e: any) {
@@ -224,9 +239,9 @@ function extractDescription(text: string): string {
 
 // removed local renderContent and canonical helpers in favor of composables
 
-function findPost(list: any, currentSlug: string) {
+function findPost(list: PostRecord[] | null | undefined, currentSlug: string) {
   if (!Array.isArray(list)) return null
-  const match = (p: any) => {
+  const match = (p: PostRecord) => {
     const ts = titleToSlug(p?.title || '')
     return p?.id === currentSlug || p?.slug === currentSlug || (!!ts && ts === currentSlug)
   }
@@ -235,7 +250,7 @@ function findPost(list: any, currentSlug: string) {
 
 const { data: postList, pending } = await useAsyncData(
   () => `post-list:${slug.value}`,
-  () => api.get('/posts'),
+  () => api.get<PostRecord[]>('/posts'),
   { watch: [slug] }
 )
 
@@ -267,7 +282,7 @@ async function recordOpenedMetric(id: string) {
     if (window.sessionStorage.getItem(key) === '1') return
   } catch {}
   try {
-    const result = await api.post(`/posts/${id}/metric`, { kind: 'opened' })
+    const result = await api.post<{ metrics?: PostMetrics }>(`/posts/${id}/metric`, { kind: 'opened' })
     if (post.value && post.value.id === id && result?.metrics) {
       post.value = {
         ...post.value,

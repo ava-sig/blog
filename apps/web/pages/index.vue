@@ -205,7 +205,7 @@
             <div class="text-[12px] text-base-sub mt-3 pt-2 border-t border-base-border/60">
               <span class="font-medium">{{ metricsLabel(p) }}</span>
               <span class="mx-2">·</span>
-              Updated: {{ formatTs(p.updatedAt || p.createdAt) }}
+              Updated: {{ formatTs(p.updatedAt || p.createdAt || '') }}
             </div>
           </li>
         </ul>
@@ -248,6 +248,22 @@ const runtime = useRuntimeConfig()
 const socialFallback = (runtime.public as any)?.socialFallback || ''
 const siteOrigin = currentOrigin()
 const homeUrl = siteOrigin ? `${siteOrigin}/` : '/'
+
+interface PostMetrics {
+  viewed: number
+  opened: number
+}
+
+interface PostRecord {
+  id: string
+  title: string
+  content: string
+  slug?: string
+  createdAt?: string
+  updatedAt?: string
+  metrics?: PostMetrics
+}
+
 useHead({
   title: 'Posts',
   link: ([
@@ -268,7 +284,7 @@ useHead({
   ]) as any,
 })
 
-const posts = ref<any[]>([])
+const posts = ref<PostRecord[]>([])
 const loading = ref(false)
 const error = ref('')
 const title = ref('')
@@ -285,7 +301,7 @@ const toastType = ref<'success' | 'error'>('success')
 
 let observer: IntersectionObserver | null = null
 
-function metricsLabel(p: any) {
+function metricsLabel(p: PostRecord) {
   const viewed = Number(p?.metrics?.viewed || 0)
   const opened = Number(p?.metrics?.opened || 0)
   return `${viewed}:${opened}`
@@ -306,7 +322,7 @@ async function recordMetric(id: string, kind: 'viewed' | 'opened') {
     if (window.sessionStorage.getItem(key) === '1') return
   } catch {}
   try {
-    const result = await api.post(`/posts/${id}/metric`, { kind })
+    const result = await api.post<{ metrics?: PostMetrics }>(`/posts/${id}/metric`, { kind })
     const i = posts.value.findIndex(p => p.id === id)
     if (i !== -1 && result?.metrics) {
       posts.value[i] = {
@@ -383,7 +399,7 @@ async function create() {
       slug: titleToSlug(title.value),
       status: 'draft',
     }
-    const created = await api.post('/posts', payload)
+    const created = await api.post<PostRecord>('/posts', payload)
     posts.value.unshift(created)
     title.value = ''
     content.value = ''
@@ -412,7 +428,7 @@ function _gotoEdit(id: string) {
   router.push(`/posts/${id}`)
 }
 
-function startEdit(p: any) {
+function startEdit(p: PostRecord) {
   if (!auth.editing) return
   if (editingId.value === p.id) return
   editingId.value = p.id
@@ -420,7 +436,7 @@ function startEdit(p: any) {
   editContent.value = p.content
 }
 
-function onCardClick(p: any, _e: MouseEvent) {
+function onCardClick(p: PostRecord, _e: MouseEvent) {
   if (!auth.editing) return
   // If already editing this card, ignore clicks inside the card
   if (editingId.value === p.id) return
@@ -437,7 +453,7 @@ async function saveEdit() {
       slug: titleToSlug(editTitle.value),
       status: 'draft',
     }
-    const updated = await api.put(`/posts/${id}`, payload)
+    const updated = await api.put<PostRecord>(`/posts/${id}`, payload)
     const i = posts.value.findIndex(x => x.id === id)
     if (i !== -1) posts.value[i] = updated
     showToast('Saved', 'success')
@@ -520,10 +536,10 @@ const apiBaseForSSR = apiBaseSafe()
 try {
   const { data: ssrPosts, error: ssrErr } = await useAsyncData('posts', () => {
     const url = `${apiBaseForSSR}/api/posts`
-    return $fetch(url)
+    return $fetch<PostRecord[]>(url)
   })
   if (!ssrErr?.value && Array.isArray(ssrPosts?.value)) {
-    posts.value = ssrPosts.value as any[]
+    posts.value = ssrPosts.value
   }
 } catch {}
 
@@ -534,9 +550,9 @@ onMounted(async () => {
   try {
     if (Array.isArray(posts.value) && posts.value.length === 0) {
       const url = `${apiBaseSafe()}/api/posts`
-      const list = await $fetch(url)
+      const list = await $fetch<PostRecord[]>(url)
       if (Array.isArray(list)) {
-        posts.value = list as any[]
+        posts.value = list
         await nextTick()
         setupReveal()
       }

@@ -1,6 +1,13 @@
 import MarkdownIt from 'markdown-it'
 import { useRuntimeConfig } from 'nuxt/app'
 
+type MdTokenLike = {
+  type?: string
+  children?: MdTokenLike[]
+  attrGet(name: string): string | null
+  attrSet(name: string, value: string): void
+}
+
 export function useContent() {
   const runtime = useRuntimeConfig()
   const apiBase = (runtime.public as any)?.apiBase?.replace(/\/$/, '') || ''
@@ -29,7 +36,13 @@ export function useContent() {
   })
 
   const defaultImageRule = md.renderer.rules.image
-  md.renderer.rules.image = (tokens, idx, options, env, self) => {
+  md.renderer.rules.image = (
+    tokens: MdTokenLike[],
+    idx: number,
+    options: unknown,
+    env: unknown,
+    self: { renderToken(tokens: MdTokenLike[], idx: number, options: unknown): string }
+  ) => {
     const token = tokens[idx]
     const src = normalizeMediaUrl(token.attrGet('src') || '')
     token.attrSet('src', src)
@@ -37,7 +50,13 @@ export function useContent() {
   }
 
   const defaultLinkOpenRule = md.renderer.rules.link_open
-  md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+  md.renderer.rules.link_open = (
+    tokens: MdTokenLike[],
+    idx: number,
+    options: unknown,
+    env: unknown,
+    self: { renderToken(tokens: MdTokenLike[], idx: number, options: unknown): string }
+  ) => {
     const token = tokens[idx]
     token.attrSet('target', '_blank')
     token.attrSet('rel', 'noopener noreferrer')
@@ -64,7 +83,7 @@ export function useContent() {
 
   function firstImageUrl(text: string): string | '' {
     if (!text) return ''
-    const tokens = md.parse(text, {})
+    const tokens = md.parse(text, {}) as MdTokenLike[]
     for (const token of tokens) {
       if (token.type === 'inline' && Array.isArray(token.children)) {
         for (const child of token.children) {

@@ -86,6 +86,36 @@ describe('usePasteMedia', () => {
     expect(opts.editContent.value || opts.newContent.value).toContain('![image](http://localhost:3000/uploads/abc.png)')
   })
 
+  it('uploads multiple pasted images and suppresses raw path insertion', async () => {
+    const opts = mkOpts()
+    const { onPaste } = usePasteMedia(opts)
+
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0])
+    const fileA = new File([bytes], 'a.png', { type: 'image/png' })
+    const fileB = new File([bytes], 'b.png', { type: 'image/png' })
+    ;(fileA as any).slice = vi.fn(() => ({ arrayBuffer: async () => bytes.buffer }))
+    ;(fileB as any).slice = vi.fn(() => ({ arrayBuffer: async () => bytes.buffer }))
+
+    const prevent = vi.fn()
+    const ev: any = {
+      preventDefault: prevent,
+      clipboardData: {
+        items: [
+          { kind: 'file', type: 'image/png', getAsFile: () => fileA },
+          { kind: 'file', type: 'image/png', getAsFile: () => fileB },
+        ],
+        files: [fileA, fileB],
+        getData: (t: string) => (t === 'text/plain' ? '/Users/me/Pictures/a.png\n/Users/me/Pictures/b.png' : ''),
+      },
+    }
+
+    await onPaste(ev as ClipboardEvent)
+    const out = opts.editContent.value || opts.newContent.value
+    expect(prevent).toHaveBeenCalled()
+    expect(out.match(/!\[image\]\(http:\/\/localhost:3000\/uploads\/abc\.png\)/g)?.length).toBe(2)
+    expect(out).not.toContain('/Users/me/Pictures/')
+  })
+
   it('shows error toast for non-image file', async () => {
     const opts = mkOpts()
     const { onPaste } = usePasteMedia(opts)

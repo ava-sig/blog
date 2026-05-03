@@ -283,6 +283,18 @@ Notes:
 
 ## Changelog
 
+### v0.2.19 — 2026-05-03
+- Web (paste uploads):
+  - Fix clipboard image pastes so multiple pasted local photos are uploaded and inserted, instead of only the first image being picked up.
+  - Prevent raw local filesystem paths from being pasted into the editor when image files are present on the clipboard.
+- Web (type safety):
+  - Add local typing for `markdown-it` and tighten post/metric typing so strict Nuxt typecheck passes in CI.
+- Tests / build:
+  - Extend paste-media tests for multi-image clipboard uploads.
+  - Web `typecheck` and unit tests pass.
+- Deploy:
+  - Refresh `.env.prod.example` to point to `v0.2.19`.
+
 ### v0.2.18 — 2026-05-03
 - Web (reading flow):
   - Treat a standalone `---` line inside a post as a homepage teaser cutoff so feed cards stay shorter and defer the rest of the post to the single-post page.
