@@ -283,6 +283,19 @@ Notes:
 
 ## Changelog
 
+### v0.2.20 — 2026-05-07
+- Web (SEO):
+  - Replace the generic homepage `Posts` metadata with the configured blog name, a real meta description, stronger Open Graph and Twitter fields, and Blog structured data in SSR HTML.
+  - Use the newest post’s first image as the homepage social image when available.
+- Web (markdown media):
+  - Add `![video](youtube-url)` support that renders a responsive embedded YouTube player.
+  - Keep social-image extraction focused on actual images by ignoring video embeds.
+- Tests / build:
+  - Extend content tests for YouTube video embeds.
+  - Web `typecheck`, unit tests, and production build pass.
+- Deploy:
+  - Refresh `.env.prod.example` to point to `v0.2.20`.
+
 ### v0.2.19 — 2026-05-03
 - Web (paste uploads):
   - Fix clipboard image pastes so multiple pasted local photos are uploaded and inserted, instead of only the first image being picked up.

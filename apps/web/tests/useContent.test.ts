@@ -44,6 +44,14 @@ describe('useContent', () => {
     expect(html).toContain('https://example.com/a.jpg')
   })
 
+  it('renderContent turns markdown video markers into a youtube embed', () => {
+    const md = '![video](https://www.youtube.com/watch?v=dQw4w9WgXcQ)'
+    const html = content.renderContent(md)
+    expect(html).toContain('class="video-embed"')
+    expect(html).toContain('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')
+    expect(html).toContain('<iframe')
+  })
+
   it('splitPreview truncates feed content at a standalone separator', () => {
     const md = '# Hello\n\nLead text\n\n---\n\n## Hidden\nMore'
     expect(content.splitPreview(md)).toEqual({
@@ -62,6 +70,11 @@ describe('useContent', () => {
 
   it('firstImageUrl finds first markdown image and prefixes /uploads', () => {
     const md = 'text ![x](/uploads/a.jpg) more ![y](https://x/y.jpg)'
+    expect(content.firstImageUrl(md)).toBe('https://api.example.com/uploads/a.jpg')
+  })
+
+  it('firstImageUrl ignores markdown video embeds', () => {
+    const md = '![video](https://youtu.be/dQw4w9WgXcQ)\n\n![x](/uploads/a.jpg)'
     expect(content.firstImageUrl(md)).toBe('https://api.example.com/uploads/a.jpg')
   })
 

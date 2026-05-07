@@ -1,9 +1,12 @@
 <template>
   <!-- eslint-disable vue/no-v-html -->
   <main class="container-page py-8">
-    <h2 class="text-xl font-semibold tracking-tight text-base-text mb-4">
-      Posts
-    </h2>
+    <h1 class="text-2xl font-semibold tracking-tight text-base-text mb-2">
+      {{ blogName }}
+    </h1>
+    <p class="text-sm text-base-sub mb-4">
+      Autonomy Theory, constraints, systems, AI, architecture, and authored software.
+    </p>
 
     <section
       v-if="auth.editing"
@@ -220,7 +223,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, nextTick } from 'vue'
+import { computed, onMounted, ref, nextTick } from 'vue'
 import { useHead, useRuntimeConfig, useAsyncData } from 'nuxt/app'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '~/stores/auth'
@@ -248,6 +251,8 @@ const runtime = useRuntimeConfig()
 const socialFallback = (runtime.public as any)?.socialFallback || ''
 const siteOrigin = currentOrigin()
 const homeUrl = siteOrigin ? `${siteOrigin}/` : '/'
+const defaultBlogName = 'Glyphic Blog'
+const defaultHomeDescription = 'Glyphic Blog explores Autonomy Theory, constraints, systems, AI, architecture, and authored software.'
 
 interface PostMetrics {
   viewed: number
@@ -264,27 +269,12 @@ interface PostRecord {
   metrics?: PostMetrics
 }
 
-useHead({
-  title: 'Posts',
-  link: ([
-    { rel: 'canonical', href: homeUrl },
-    ...(socialFallback ? [{ rel: 'preload', as: 'image', href: socialFallback }] : []),
-  ]) as any,
-  meta: ([
-    { property: 'og:title', content: 'Posts' },
-    { property: 'og:type', content: 'website' },
-    { property: 'og:url', content: homeUrl },
-    ...(socialFallback ? [
-      { property: 'og:image', content: socialFallback },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:image', content: socialFallback },
-    ] : [
-      { name: 'twitter:card', content: 'summary' },
-    ]),
-  ]) as any,
-})
+interface SiteSettings {
+  blogName?: string
+}
 
 const posts = ref<PostRecord[]>([])
+const settings = ref<SiteSettings | null>(null)
 const loading = ref(false)
 const error = ref('')
 const title = ref('')
@@ -300,6 +290,76 @@ const toastType = ref<'success' | 'error'>('success')
 // removed paste dedupe guards (handled by composable if needed)
 
 let observer: IntersectionObserver | null = null
+
+const blogName = computed(() => {
+  const raw = settings.value?.blogName
+  return (typeof raw === 'string' && raw.trim()) || defaultBlogName
+})
+
+const latestPost = computed(() => posts.value[0] || null)
+
+function stripMarkdownForSeo(text: string): string {
+  const preview = splitPreview(text).preview
+  return String(preview || '')
+    .replace(/!\[[^\]]*\]\([^\)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^\)]*\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/[`>*_~#-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const homeDescription = computed(() => {
+  const latest = latestPost.value ? stripMarkdownForSeo(latestPost.value.content || '') : ''
+  if (!latest) return defaultHomeDescription
+  const combined = `${blogName.value} — ${latest}`
+  return combined.length > 180 ? `${combined.slice(0, 177).trimEnd()}...` : combined
+})
+
+const homeSocialImage = computed(() => {
+  const latest = latestPost.value ? _firstImageUrl(latestPost.value.content || '') : ''
+  return latest || socialFallback || ''
+})
+
+const homeStructuredData = computed(() => JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  name: blogName.value,
+  description: homeDescription.value,
+  url: homeUrl,
+}))
+
+useHead(() => ({
+  title: blogName.value,
+  link: ([
+    { rel: 'canonical', href: homeUrl },
+    ...(homeSocialImage.value ? [{ rel: 'preload', as: 'image', href: homeSocialImage.value }] : []),
+  ]) as any,
+  meta: ([
+    { name: 'description', content: homeDescription.value },
+    { name: 'robots', content: 'index,follow,max-image-preview:large' },
+    { property: 'og:site_name', content: blogName.value },
+    { property: 'og:title', content: blogName.value },
+    { property: 'og:description', content: homeDescription.value },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: homeUrl },
+    { name: 'twitter:title', content: blogName.value },
+    { name: 'twitter:description', content: homeDescription.value },
+    ...(homeSocialImage.value ? [
+      { property: 'og:image', content: homeSocialImage.value },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:image', content: homeSocialImage.value },
+    ] : [
+      { name: 'twitter:card', content: 'summary' },
+    ]),
+  ]) as any,
+  script: [{
+    type: 'application/ld+json',
+    children: homeStructuredData.value,
+  }] as any,
+}))
 
 function metricsLabel(p: PostRecord) {
   const viewed = Number(p?.metrics?.viewed || 0)
@@ -543,9 +603,25 @@ try {
   }
 } catch {}
 
+try {
+  const { data: ssrSettings, error: ssrSettingsErr } = await useAsyncData('settings', () => {
+    const url = `${apiBaseForSSR}/api/settings`
+    return $fetch<SiteSettings>(url)
+  })
+  if (!ssrSettingsErr?.value && ssrSettings?.value) {
+    settings.value = ssrSettings.value
+  }
+} catch {}
+
 onMounted(async () => {
   await nextTick()
   setupReveal()
+  try {
+    if (!settings.value) {
+      const url = `${apiBaseSafe()}/api/settings`
+      settings.value = await $fetch<SiteSettings>(url)
+    }
+  } catch {}
   // Client-side fallback: if SSR failed to populate posts, fetch now
   try {
     if (Array.isArray(posts.value) && posts.value.length === 0) {
